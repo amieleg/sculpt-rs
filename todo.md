@@ -11,3 +11,4 @@ Program
 5 Aligner for placing on a grid (big and small)
 6 Tool for moving a single vertex on / off grid
 7 Simple lighting 
+8 Unit tests? at least some 
