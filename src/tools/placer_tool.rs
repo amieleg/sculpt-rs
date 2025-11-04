@@ -1,6 +1,8 @@
 use macroquad::prelude::*;
 use crate::my_model::*;
+use crate::player::BigMovementInfo;
 use crate::tools::*;
+use crate::aligners::*;
 use crate::tri;
 
 
@@ -17,27 +19,28 @@ pub struct PlacerTool
     pub ma: ModelAddition, // ma = ModelAddition
     pub state: PlacingState,
     pub placing: ModelAddition, // The ModelAddition that the PlacerTool will be able to add to the main model, read-only
+    pub aligner: GridAligner, 
 }
 
 /// A tool allowing the user to place a certain ModelAddition in the main model
 impl ModelTool for PlacerTool
 {
-    fn start_up(&mut self, m: &mut Model, loc: Vec3) 
+    fn start_up(&mut self, m: &mut Model, p: &Player) 
     {
-        self.set_addition(loc);
+        self.set_addition(self.aligner.align(m, p) + Vec3::new(0.5, 0.5, 0.5));
     }
 
     /// Handles input for the PlacerTool
     /// When B is first pressed, the user will be able to move around a ModelAddition
     /// When B is pressed again, the ModelAddition is merged into the main model
-    fn update(&mut self, m: &mut Model, loc: Vec3)
+    fn update(&mut self, m: &mut Model, p: &Player)
     {
         if is_mouse_button_pressed(MouseButton::Left)
         {
             self.merge(m);
         }
 
-        self.set_addition(loc);
+        self.set_addition(self.aligner.align(m, p) + Vec3::new(0.5, 0.5, 0.5));
     }
 
     /// Generates a mesh based on the ModelAddition of the PlacerTool and a given model
@@ -68,6 +71,11 @@ impl ModelTool for PlacerTool
     fn get_name(&self) -> &str {
         return &self.name;
     }
+
+    fn get_texture_index(&self) -> usize 
+    {
+        return 1;
+    }
 }
 
 impl PlacerTool
@@ -79,7 +87,8 @@ impl PlacerTool
             name: name,
             ma: ModelAddition::new(),
             state: PlacingState::Nothing,
-            placing: addition
+            placing: addition,
+            aligner: GridAligner::new(0.5),
         }
     }
 

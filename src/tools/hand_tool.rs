@@ -9,12 +9,12 @@ pub struct HandTool
 
 impl ModelTool for HandTool
 {
-    fn start_up(&mut self, m: &mut Model, loc: Vec3) 
+    fn start_up(&mut self, m: &mut Model, p: &Player) 
     {
         
     }
 
-    fn update(&mut self, m: &mut Model, loc: Vec3)
+    fn update(&mut self, m: &mut Model, p: &Player)
     {
         
     }
@@ -27,6 +27,11 @@ impl ModelTool for HandTool
     fn get_name(&self) -> &str
     {
         "Hand Tool"
+    }
+
+    fn get_texture_index(&self) -> usize 
+    {
+        return 0
     }
 }
 

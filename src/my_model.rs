@@ -50,7 +50,7 @@ impl Model
             // Front face
             Vertex::new2(vec3(0.0, 0.0,  0.0), vec2(0.0, 0.0), WHITE),
             Vertex::new2(vec3( 1.0, 0.0,  0.0), vec2(1.0, 0.0), WHITE),
-            Vertex::new2(vec3( 0.0,  0.0,  1.0), vec2(1.0, 1.0), WHITE),
+            Vertex::new2(vec3( 0.0,  0.0,  1.0), vec2(0.0, 1.0), WHITE),
         ];
 
         let triangles = vec![
@@ -127,9 +127,9 @@ impl Model
             .map(|(tri, _)| tri)
     }
 
-    pub fn send_ray(&self, loc: Vec3, dir: Vec3) -> Option<Vec3>
+    pub fn ray_tri_intersect(&self, tri_indeces: Triangle, loc: Vec3, dir: Vec3) -> Option<f32>
     {
-        let tri = self.tri_as_vertices(self.triangles[0]);
+        let tri = self.tri_as_vertices(tri_indeces);
         let normal = (tri[1].position - tri[0].position).cross(tri[2].position - tri[0].position);
         let t = (normal.dot(tri[0].position - loc)) / (normal.dot(dir));
         let p_int = (t * dir) + loc;
@@ -138,12 +138,66 @@ impl Model
         let c2 = (tri[0].position - tri[2].position).cross(p_int - tri[2].position);
         if (normal.dot(c0) >= 0.0 && normal.dot(c1) >= 0.0 && normal.dot(c2) >= 0.0)
         {
-            return Some((t * dir) + loc);
+            return Some(t);
         }
         else 
         {      
             return None;
         }
+    }
+
+    pub fn send_ray(&self, loc: Vec3, dir: Vec3) -> Option<(Vec3, Triangle)>
+    {
+        let mut lowest_t: f32 = 0.;
+        let mut target_tri = tri![0,0,0];
+
+        for tri in self.triangles.clone()
+        {
+            if let Some(t) = self.ray_tri_intersect(tri, loc, dir)
+            {
+                if -t < lowest_t // -t because ray_tri_intersect returns negative t usually
+                {
+                    lowest_t = -t;
+                    target_tri = tri;
+                }
+            }
+        }
+
+        if lowest_t != 0.
+        {
+            return Some(((lowest_t * dir) + loc, target_tri));
+        }
+        else 
+        {
+            return None;    
+        }
+    }
+
+    pub fn send_ray_vertex(&self, loc: Vec3, dir: Vec3, angle_range: f32) -> Option<u16>
+    {
+        let mut closest_distance: f32 = 50000.; // max value
+        let mut target: Option<u16> = None;
+
+        let mut i: u16 = 0;
+        for v in self.vertices.clone()
+        {
+            let dir_to_vec = (v.position - loc).normalize();
+            let angle = dir.angle_between(dir_to_vec);
+
+            if angle < angle_range
+            {
+                let distance = loc.distance(v.position);
+                if distance < closest_distance
+                {
+                    closest_distance = distance;
+                    target = Some(i);
+                }
+            }
+
+            i += 1;
+        }
+
+        return target;
     }
 }
 

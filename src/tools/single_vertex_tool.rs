@@ -8,6 +8,7 @@
 //! Intended to be used as a `ModelTool` implementation.
 
 use macroquad::prelude::*;
+use crate::aligners::*;
 use crate::my_model::*;
 use crate::tools::*;
 use crate::placer_tool::PlacingState;
@@ -20,13 +21,14 @@ pub struct SingleVertexTool
 {
     pub ma: ModelAddition, // model addition
     pub state: PlacingState,
+    pub aligner: SimpleAligner,
 }
 
 impl ModelTool for SingleVertexTool
 {
-    fn start_up(&mut self, m: &mut Model, loc: Vec3) 
+    fn start_up(&mut self, m: &mut Model, p: &Player) 
     {
-        self.set_addition(m, loc);
+        self.set_addition(m, self.aligner.align(m,p));
     }
 
     /// Handle input and update the tool state.
@@ -35,15 +37,15 @@ impl ModelTool for SingleVertexTool
     ///   - If switching to `Placing`: create the new vertex
     ///   - If switching to `Nothing` -> merge the addition into the model and stop placing
     /// - While `Placing` update the temporary vertex position/triangles.
-    fn update(&mut self, m: &mut Model, loc: Vec3)
+    fn update(&mut self, m: &mut Model, p: &Player)
     {
         if is_mouse_button_pressed(MouseButton::Left)
         {
             self.merge(m);
-            self.set_addition(m, loc);
+            self.set_addition(m, self.aligner.align(m,p));
         }
 
-        self.update_addition(m, loc);
+        self.update_addition(m, self.aligner.align(m,p));
     }
 
     /// Generate a mesh representing the combination of the base model and the
@@ -68,6 +70,11 @@ impl ModelTool for SingleVertexTool
     fn get_name(&self) -> &str {
         "Single Vertex Tool"
     }
+
+    fn get_texture_index(&self) -> usize 
+    {
+        return 0;    
+    }
 }
 
 impl SingleVertexTool
@@ -77,7 +84,8 @@ impl SingleVertexTool
         SingleVertexTool
         {
             ma: ModelAddition::new(),
-            state: PlacingState::Nothing
+            state: PlacingState::Nothing,
+            aligner: SimpleAligner{},
         }
     }
 
