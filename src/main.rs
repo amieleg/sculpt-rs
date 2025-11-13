@@ -35,14 +35,14 @@ pub static PIXEL_SIZE: u16 = 1;
 
 #[macroquad::main(conf)]
 async fn main() {
-    let texture = load_texture("assets/checker128.png").await.unwrap();
+    let texture = load_texture("assets/cubetexturecolor64-48.png").await.unwrap();
     texture.set_filter(FilterMode::Nearest);
 
     let icon_atlas = TextureAtlas::icons_atlas().await;
 
     let mut f3 = false;
 
-    let mut m = Model::new(texture);
+    let mut m = Model::gen_cube_model(Some(texture));
 
     let mut p = Player::new();
 
@@ -117,93 +117,13 @@ async fn main() {
             draw_debug(&p, &m);
         }
 
-        draw_toolbar(&tb, &icon_atlas);
-        draw_info(&p, &m);
-        //draw_info2();
+        tb.draw_toolbar(&icon_atlas);
 
         next_frame().await;
     }
 }
 
-pub fn draw_toolbar(tb: &Toolbar, icon_atlas: &TextureAtlas)
-{
-    let selected_skin = Skin {
-        label_style: {root_ui().style_builder().text_color(RED).build()},
-        ..root_ui().default_skin()
-    };
 
-    if is_key_pressed(KeyCode::F4)
-    {
-        println!("{}", root_ui().default_skin().margin);
-    }
-
-    root_ui().window((screen_width() * screen_height()) as u64, Vec2::new((screen_width() / 2.) - 200., screen_height() as f32 - 80.), Vec2::new(400., 70.), |ui| {
-        for i in 1..tb.tools.len()
-        {
-            let tool = &tb.tools[i];
-
-            if i == tb.selected_tool
-            {
-                ui.push_skin(&selected_skin);
-                ui.texture(icon_atlas.get_texture(tool.get_texture_index()), 64., 64.);
-                ui.label(Vec2::new((i-1) as f32 * 64.,0.), &format!("[{}]",i));
-                ui.pop_skin();
-            }
-            else
-            {
-                ui.texture(icon_atlas.get_texture(tool.get_texture_index()), 64., 64.);  
-
-                ui.label(Vec2::new((i-1) as f32 * 64.,0.), &format!("[{}]",i));
-            }
-            ui.same_line(0.0);
-        }
-    });
-}
-
-pub fn draw_info(p: &Player, m: &Model)
-{
-    let looking_at = m.send_ray(p.mi.position, p.mi.front);
-
-    widgets::Window::new(/*(screen_width() * screen_height() + 1.) as u64*/ hash!(), Vec2::new(screen_width() - 310., screen_height() - 210.), Vec2::new(300., 200.)).titlebar(false).ui(&mut *root_ui(), |ui|
-    {
-        if let Some((_, tri)) = looking_at
-        {
-            let looking_at_vertices = m.tri_as_vertices(tri);
-            
-            Group::new(hash!(), Vec2::new(290., 40.)).ui(ui, |ui| {
-                ui.label(Vec2::new(0., 0.), "Looking at triangle:");
-            });
-
-            Group::new(hash!(), Vec2::new(290., 150.)).ui(ui, |ui| {
-                for v in looking_at_vertices
-                {
-                    Group::new(hash!(), Vec2::new(280., 50.)).ui(ui, |ui| {
-                        ui.label(Vec2::new(0., 0.), &format!("Vertex {}:", v.position));
-                    });
-                }
-            });
-        }
-        else 
-        {    
-            ui.label(Vec2::new(10., 10.), "Looking at nothing!");
-        }
-        
-    });
-}
-
-pub fn draw_info2()
-{
-    widgets::Window::new(hash!(), Vec2::new(screen_width() - 310., screen_height() - 210.), Vec2::new(300., 200.)).titlebar(false).ui(&mut *root_ui(), |ui|
-    {
-        Group::new(hash!(), Vec2::new(290., 40.)).ui(ui, |ui| {
-            ui.label(Vec2::new(0., 0.), "Looking at triangle:");
-        });
-
-        Group::new(hash!(), Vec2::new(290., 80.)).ui(ui, |ui| {
-            ui.label(Vec2::new(0., 0.), &format!("Vertex {}:", 1));
-        });
-    });
-}
 
 /// Draws text information from p and m on the screen
 pub fn draw_debug(p: &Player, m: &Model)

@@ -1,8 +1,8 @@
 use macroquad::prelude::*;
 
-pub fn triangle_distance_squared(v: Vec3, tri: [Vertex; 3]) -> f32
+pub fn triangle_distance_squared(loc: Vec3, poly: Vec<Vertex>) -> f32
 {
-    return (v.distance_squared(tri[0].position) + v.distance_squared(tri[1].position) + v.distance_squared(tri[2].position)) / 3.0;
+    poly.iter().map(|v| loc.distance_squared(v.position)).sum::<f32>() / poly.len() as f32
 }
 
 pub fn drop_y_normalize(inp: Vec3) -> Vec3
@@ -20,17 +20,25 @@ impl TextureAtlas
     pub async fn icons_atlas() -> TextureAtlas
     {
         let cube_tool = load_texture("assets/icons/cube_tool.png").await.unwrap();
-        cube_tool.set_filter(FilterMode::Nearest);
 
         let sv_tool = load_texture("assets/icons/sv_tool.png").await.unwrap();
-        sv_tool.set_filter(FilterMode::Nearest);
 
         let svm_tool = load_texture("assets/icons/svm_tool.png").await.unwrap();
-        svm_tool.set_filter(FilterMode::Nearest);
+
+        let brush_tool = load_texture("assets/icons/brush_tool.png").await.unwrap();
+
+        let inspect_tool = load_texture("assets/icons/inspect_tool.png").await.unwrap();
+
+        let textures = [inspect_tool, cube_tool, sv_tool, svm_tool, brush_tool];
+        
+        for t in &textures
+        {
+            t.set_filter(FilterMode::Nearest);
+        }
 
         return TextureAtlas
         {
-            textures: vec![sv_tool, cube_tool, svm_tool],
+            textures: textures.to_vec(),
         }
     }
 
@@ -43,3 +51,4 @@ impl TextureAtlas
         return self.textures[0].clone();
     }
 }
+

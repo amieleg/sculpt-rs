@@ -32,7 +32,7 @@ impl ModelTool for SingleVertexMover
 
             if let Some(index_vec) = looking_at
             {
-                let looking_at_pos = m.vertices[index_vec as usize].position;
+                let looking_at_pos = m.vertices[index_vec as usize];
 
                 draw_sphere(looking_at_pos, 0.1, None, RED); // change this to use gen_mesh
 
@@ -48,7 +48,7 @@ impl ModelTool for SingleVertexMover
         {
             let aligned_pos = self.aligner.align(m, p);
 
-            m.vertices[self.selected as usize].position = aligned_pos;
+            m.vertices[self.selected as usize] = aligned_pos;
 
             if is_mouse_button_released(MouseButton::Left)
             {
@@ -68,7 +68,7 @@ impl ModelTool for SingleVertexMover
     }
     fn get_texture_index(&self) -> usize
     {
-        2
+        3
     }
 }
 

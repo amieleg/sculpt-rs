@@ -52,19 +52,7 @@ impl ModelTool for SingleVertexTool
     /// tool's current addition. The returned mesh is used for preview rendering.
     fn gen_mesh(&self, m: &Model) -> Mesh
     {
-        let mut vertices = m.vertices.clone();
-        vertices.append(&mut self.ma.vertices.clone());
-
-        let mut indices = m.triangles.clone();
-        indices.append(&mut self.ma.triangles.clone());
-        let indices_flattened: Vec<u16> = indices.iter().flat_map(|tri| tri.ix.to_vec()).collect();
-
-        Mesh
-        {
-            vertices: vertices,
-            indices: indices_flattened,
-            texture: m.texture.clone(),
-        }
+        return self.ma.gen_mesh(&m);
     }
 
     fn get_name(&self) -> &str {
@@ -73,7 +61,7 @@ impl ModelTool for SingleVertexTool
 
     fn get_texture_index(&self) -> usize 
     {
-        return 0;    
+        return 2;    
     }
 }
 
@@ -93,7 +81,7 @@ impl SingleVertexTool
     /// performing an initial update of triangles.
     fn set_addition(&mut self, m: &mut Model, loc: Vec3)
     {
-        self.ma.vertices.push(Vertex::new2(loc, vec2(0.0, 0.0), WHITE));
+        self.ma.vertices.push(loc);
         self.update_addition(m, loc);
     }
 
@@ -102,7 +90,7 @@ impl SingleVertexTool
     /// set_addition needs to have been called first to add the vertex.
     fn update_addition(&mut self, m: &Model, loc: Vec3)
     {
-        self.ma.vertices[0] = Vertex::new2(loc, vec2(0.0, 0.0), WHITE);
+        self.ma.vertices[0] = loc;
         self.set_addition_triangles(m, loc);
     }
 
@@ -110,7 +98,7 @@ impl SingleVertexTool
     fn merge(&mut self, m: &mut Model)
     {
         m.vertices.append(&mut self.ma.vertices);
-        m.triangles.append(&mut self.ma.triangles); 
+        m.polys.append(&mut self.ma.polys); 
     }
 
     /// Recompute the triangles for the temporary addition so the new vertex
@@ -120,13 +108,19 @@ impl SingleVertexTool
     /// the new vertex to each edge of the closest triangle.
     fn set_addition_triangles(&mut self, m: &Model, loc: Vec3)
     {
-        let closest_tri = m.get_closest_triangle(loc);
+        let closest_poly = m.get_closest_poly(loc);
 
-        if let Some(tri) = closest_tri
+        if let Some(poly) = closest_poly
         {
-            self.ma.triangles = vec![  tri![tri.ix[0], tri.ix[1], m.vertices.len() as u16],
-                                        tri![tri.ix[1], tri.ix[2], m.vertices.len() as u16],
-                                        tri![tri.ix[0], tri.ix[2], m.vertices.len() as u16]];
+            let mut ma_polys = vec![];
+            let poly_indexes = &poly.to_vec();
+
+            for i in 0..poly_indexes.len()
+            {
+                ma_polys.push( tri![poly_indexes[i] ,poly_indexes[(i+1) % poly_indexes.len()], m.vertices.len() as u16]);
+            }
+
+            self.ma.polys = ma_polys;
         }
     }
 }

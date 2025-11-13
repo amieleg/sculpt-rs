@@ -1,4 +1,5 @@
 use macroquad::prelude::*;
+use macroquad::ui::{hash, root_ui, Skin};
 use crate::my_model::Model;
 use crate::tools::*;
 use crate::tools::hand_tool::*;
@@ -6,8 +7,13 @@ use crate::tools::placer_tool::*;
 use crate::tools::single_vertex_tool::*;
 use crate::tools::single_vertex_mover::*;
 use crate::tools::brush_tool::*;
+use crate::tools::inspect_tool::*;
+use crate::utils::TextureAtlas;
 
-pub const TOOLBAR_SIZE: usize = 5;
+const TOOLBAR_SIZE: usize = 9;
+const ICON_SIZE: f32 = 64.;
+const TOOLBAR_WIDTH: f32 = ICON_SIZE * TOOLBAR_SIZE as f32 + ((TOOLBAR_SIZE + 1) as f32 * 3.);
+const TOOLBAR_HEIGHT: f32 = ICON_SIZE + 6.;
 pub struct Toolbar
 {
     pub tools: Vec<Box<dyn ModelTool>>,
@@ -22,8 +28,12 @@ impl Toolbar
         tools.push(Box::new(HandTool::new()));
 
         let tempmodel = Model::gen_cube_model(None);
-        let cube_tool: Box<dyn ModelTool> = Box::new(PlacerTool::new(String::from("Cube Placer Tool"), ModelAddition{vertices: tempmodel.vertices, triangles: tempmodel.triangles}));
+        let cube_tool: Box<dyn ModelTool> = Box::new(PlacerTool::new(String::from("Cube Placer Tool"), ModelAddition{vertices: tempmodel.vertices, polys: tempmodel.polys}));
         tools.push(cube_tool);
+
+        let tempmodel = Model::new(None);
+        let triangle_tool: Box<dyn ModelTool> = Box::new(PlacerTool::new(String::from("Other Placer Tool"), ModelAddition{vertices: tempmodel.vertices, polys: tempmodel.polys}));
+        tools.push(triangle_tool);
 
         let sv_tool: Box<dyn ModelTool> = Box::new(SingleVertexTool::new());
         tools.push(sv_tool);
@@ -31,8 +41,12 @@ impl Toolbar
         let svm_tool: Box<dyn ModelTool> = Box::new(SingleVertexMover::new());
         tools.push(svm_tool);
 
-        let brush_tool: Box<dyn ModelTool> = Box::new(BrushTool::new("assets/checker128.png").await);
+        let inspect_tool: Box<dyn ModelTool> = Box::new(InspectTool::new());
+        tools.push(inspect_tool);
+
+        let brush_tool: Box<dyn ModelTool> = Box::new(BrushTool::new("assets/cubetexturecolor64-48.png").await);
         tools.push(brush_tool);
+
         
         Toolbar
         {
@@ -48,6 +62,15 @@ impl Toolbar
             return &mut self.tools[0];
         }
         return &mut self.tools[self.selected_tool]
+    }
+
+    pub fn get_current_tool(&self) -> & Box<dyn ModelTool>
+    {
+        if self.selected_tool >= self.tools.len()
+        {
+            return &self.tools[0];
+        }
+        return &self.tools[self.selected_tool]
     }
 
     pub fn switch_tool_to(&mut self, index: usize)
@@ -89,11 +112,62 @@ impl Toolbar
         {
             self.switch_tool_to(5);
         }
+                else if is_key_pressed(KeyCode::Key6)
+        {
+            self.switch_tool_to(6);
+        }
+                else if is_key_pressed(KeyCode::Key7)
+        {
+            self.switch_tool_to(7);
+        }
+                else if is_key_pressed(KeyCode::Key8)
+        {
+            self.switch_tool_to(8);
+        }
+                else if is_key_pressed(KeyCode::Key9)
+        {
+            self.switch_tool_to(9);
+        }
 
         if tool_before != self.selected_tool
         {
             return true;
         }
         return false;
+    }
+
+    pub fn draw_toolbar(&self, icon_atlas: &TextureAtlas)
+    {
+        let selected_skin = Skin {
+            label_style: {root_ui().style_builder().text_color(RED).build()},
+            ..root_ui().default_skin()
+        };
+
+        
+        let current_tool = self.get_current_tool();
+        draw_text(current_tool.get_name(), screen_width() / 2. - (current_tool.get_name().len() * 5) as f32, screen_height() - TOOLBAR_HEIGHT - 10. - 10., 20., BLACK);
+        
+
+        root_ui().window(hash!(screen_width() as u64, screen_height() as u64, "toolbar"), Vec2::new((screen_width() / 2.) - TOOLBAR_WIDTH / 2., screen_height() - TOOLBAR_HEIGHT - 10.), Vec2::new(TOOLBAR_WIDTH, TOOLBAR_HEIGHT), |ui| {
+            for i in 1..self.tools.len()
+            {
+                let tool = &self.tools[i];
+
+                if i == self.selected_tool
+                {
+                    ui.push_skin(&selected_skin);
+                    ui.texture(icon_atlas.get_texture(tool.get_texture_index()), 64., 64.);
+                    ui.label(Vec2::new((i-1) as f32 * 64.,0.), &format!("[{}]",i));
+                    ui.pop_skin();
+                }
+                else
+                {
+                    ui.texture(icon_atlas.get_texture(tool.get_texture_index()), 64., 64.);  
+
+                    ui.label(Vec2::new((i-1) as f32 * 64.,0.), &format!("[{}]",i));
+                }
+                ui.same_line(0.0);
+            }
+        });
     }
 }

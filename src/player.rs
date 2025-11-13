@@ -1,6 +1,4 @@
 use crate::utils::drop_y_normalize;
-use crate::tools::*;
-use crate::my_model::*;
 use macroquad::prelude::*;
 
 
@@ -34,24 +32,24 @@ impl Player
     pub fn update(&mut self, delta: f32)
     {
         self.mi.update(delta);
-        self.movement_update(delta);
+        self.movement_update();
     }
 
-    pub fn movement_update(&mut self, delta: f32)
+    pub fn movement_update(&mut self)
     {
-        if is_key_down(KeyCode::Up) 
+        if is_key_down(KeyCode::W) 
         {
             self.mi.position += drop_y_normalize(self.mi.front) * MOVE_SPEED;
         }
-        if is_key_down(KeyCode::Down) 
+        if is_key_down(KeyCode::S) 
         {
             self.mi.position -= drop_y_normalize(self.mi.front) * MOVE_SPEED;
         }
-        if is_key_down(KeyCode::Left) 
+        if is_key_down(KeyCode::A) 
         {
             self.mi.position -= drop_y_normalize(self.mi.right) * MOVE_SPEED;
         }
-        if is_key_down(KeyCode::Right) 
+        if is_key_down(KeyCode::D) 
         {
             self.mi.position += drop_y_normalize(self.mi.right) * MOVE_SPEED;
         }

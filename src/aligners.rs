@@ -15,11 +15,11 @@ pub struct GridAligner
 
 impl Aligner for GridAligner
 {
-    fn align(&self, m: &Model, p: &Player) -> Vec3
+    fn align(&self, _m: &Model, p: &Player) -> Vec3
     {
         let looking_at = p.mi.position + p.mi.front * 2.0;
 
-        return ((looking_at / self.gridsize).floor() * self.gridsize);
+        return (looking_at / self.gridsize).floor() * self.gridsize;
     }
 }
 
@@ -41,7 +41,7 @@ pub struct SimpleAligner
 
 impl Aligner for SimpleAligner
 {
-    fn align(&self, m: &Model, p: &Player) -> Vec3
+    fn align(&self, _m: &Model, p: &Player) -> Vec3
     {
         return p.mi.position + p.mi.front * 2.0;
     }

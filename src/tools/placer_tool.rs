@@ -47,25 +47,12 @@ impl ModelTool for PlacerTool
     /// Before being added the final mesh, the triangles of the ma are transformed such that the triangles can be appended onto the main model and still reference the right vertices
     fn gen_mesh(&self, m: &Model) -> Mesh
     {
-        let mut vertices = m.vertices.clone();
-        let base_vertices = vertices.len() as u16;
-        vertices.append(&mut self.ma.vertices.clone());
+        let amount_vertices = m.vertices.len() as u16;
+        let transformed_polys: Vec<Poly> = self.ma.polys.iter().map(|poly| poly.add_to_indeces(amount_vertices)).collect(); 
 
-        let mut indices: Vec<u16> = m.triangles.clone().iter()
-                                                        .flat_map(|tri| tri.ix.to_vec())
-                                                        .collect();
-        let mut transformed_addition_indices: Vec<u16> = self.ma.triangles.clone().iter()
-                                                                                    .flat_map(|tri| [tri.ix[0] + base_vertices, tri.ix[1] + base_vertices, tri.ix[2] + base_vertices])
-                                                                                    .collect();
-
-        indices.append(&mut transformed_addition_indices);
-
-        Mesh
-        {
-            vertices: vertices,
-            indices: indices,
-            texture: m.texture.clone(),
-        }
+        let transformed_ma = ModelAddition{vertices: self.ma.vertices.clone(), polys: transformed_polys};
+        
+        return transformed_ma.gen_mesh(&m);
     }
 
     fn get_name(&self) -> &str {
@@ -96,7 +83,7 @@ impl PlacerTool
     pub fn set_addition(&mut self, loc: Vec3)
     {
         self.ma = self.placing.clone();
-        self.ma.vertices = self.ma.vertices.iter().map(|v| Vertex::new2(v.position + loc, v.uv, v.color.into())).collect();
+        self.ma.vertices = self.ma.vertices.iter().map(|v| *v + loc).collect();
     }
 
     /// Merges the ma into a given model, non-reversible
@@ -104,6 +91,6 @@ impl PlacerTool
     {
         let amount_vertices = m.vertices.len() as u16;
         m.vertices.append(&mut self.ma.vertices);
-        m.triangles.append(&mut self.ma.triangles.iter().map(|tri| tri![tri.ix[0] + amount_vertices, tri.ix[1] + amount_vertices, tri.ix[2] + amount_vertices]).collect()); 
+        m.polys.append(&mut self.ma.polys.iter().map(|poly| poly.add_to_indeces(amount_vertices)).collect()); 
     }
 }

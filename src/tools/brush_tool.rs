@@ -20,15 +20,21 @@ impl ModelTool for BrushTool
 
     fn update(&mut self, m: &mut Model, p: &Player)
     {
-        if is_mouse_button_down(MouseButton::Left)
+        if let Some((loc, poly)) = m.send_ray(p.mi.position, p.mi.front)
         {
-            self.image.bytes[45 * 4] = 0; 
-            self.image.bytes[45 * 4 + 1] = 0; 
-            self.image.bytes[45 * 4 + 2] = 0; 
-            self.image.bytes[45 * 4 + 3] = 255;; 
-        
-            self.merge(m);
+
+            if is_mouse_button_down(MouseButton::Left)
+            {
+                if let Some(uv) = m.calc_uv(poly, loc)
+                {
+                    let pixel_x = (uv.x * self.image.width as f32) as u32;
+                    let pixel_y = (uv.y * self.image.height as f32) as u32;
+
+                    self.image.set_pixel(pixel_x, pixel_y, PINK);
+                }
+            }
         }
+        self.merge(m);
     }
 
     fn gen_mesh(&self, m: &Model) -> Mesh
@@ -43,7 +49,7 @@ impl ModelTool for BrushTool
 
     fn get_texture_index(&self) -> usize
     {
-        0
+        4
     }
 }
 
