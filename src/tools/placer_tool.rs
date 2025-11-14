@@ -1,23 +1,12 @@
 use macroquad::prelude::*;
 use crate::my_model::*;
-use crate::player::BigMovementInfo;
 use crate::tools::*;
 use crate::aligners::*;
-use crate::tri;
-
-
-#[derive(PartialEq)]
-pub enum PlacingState
-{
-    Nothing,
-    Placing
-}
 
 pub struct PlacerTool
 {
     pub name: String,
     pub ma: ModelAddition, // ma = ModelAddition
-    pub state: PlacingState,
     pub placing: ModelAddition, // The ModelAddition that the PlacerTool will be able to add to the main model, read-only
     pub aligner: GridAligner, 
 }
@@ -73,7 +62,6 @@ impl PlacerTool
         {
             name: name,
             ma: ModelAddition::new(),
-            state: PlacingState::Nothing,
             placing: addition,
             aligner: GridAligner::new(0.5),
         }

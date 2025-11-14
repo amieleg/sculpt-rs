@@ -15,7 +15,7 @@ macro_rules! tri_uv {
                 vec2($ub, $vb),
                 vec2($uc, $vc),
             ],
-            normal: Vec3::ZERO, // or whatever default you want
+            normal: Vec3::ZERO, 
         }
     };
 }
@@ -36,7 +36,7 @@ macro_rules! quad_uv {
                 vec2($uc, $vc),
                 vec2($ud, $vd)
             ],
-            normal: Vec3::ZERO, // or whatever default you want
+            normal: Vec3::ZERO,
         }
     };
 }
@@ -47,17 +47,18 @@ macro_rules! quad_uv2 {
         $a:expr, ($ua:expr, $va:expr),
         $b:expr, ($ub:expr, $vb:expr),
         $c:expr, ($uc:expr, $vc:expr),
-        $d:expr, ($ud:expr, $vd:expr)
+        $d:expr, ($ud:expr, $vd:expr),
+        ($w:expr, $h:expr)
     ) => {
         crate::Poly::Quad {
             ix: [$a, $b, $c, $d],
             uvs: [
-                Model::to_uv($ua, $va),
-                Model::to_uv($ub, $vb),
-                Model::to_uv($uc, $vc),
-                Model::to_uv($ud, $vd)
+                vec2($ua/$w, $va/$h),
+                vec2($ub/$w, $vb/$h),
+                vec2($uc/$w, $vc/$h),
+                vec2($ud/$w, $vd/$h)
             ],
-            normal: Vec3::ZERO, // or whatever default you want
+            normal: Vec3::ZERO,
         }
     };
 }
@@ -101,12 +102,21 @@ pub enum Poly
 
 impl Poly
 {
-    pub fn to_vec(&self) -> Vec<u16>
+    pub fn ixs_as_vec(&self) -> Vec<u16>
     {
         match self
         {
-            Poly::Triangle { ix, uvs: _, normal: _ } => ix.to_vec(),
-            Poly::Quad { ix, uvs: _, normal: _ } => ix.to_vec(),
+            Poly::Triangle { ix,..} => ix.to_vec(),
+            Poly::Quad { ix,..} => ix.to_vec(),
+        }
+    }
+
+    pub fn uvs_as_vec(&self) -> Vec<Vec2>
+    {
+        match self
+        {
+            Poly::Triangle {uvs,..} => uvs.to_vec(),
+            Poly::Quad {uvs,..} => uvs.to_vec(),
         }
     }
 
@@ -171,11 +181,6 @@ impl Model
         }
     }
 
-    pub fn to_uv(x: u32, y:u32) -> Vec2
-    {
-        vec2(x as f32 / 64. ,y as f32/ 48.)
-    }
-
     pub fn gen_cube_model(texture: Option<Texture2D>) -> Model
     {
         let vertices = vec![
@@ -193,17 +198,17 @@ impl Model
 
         let polys = vec![
             // Front
-            quad_uv2![0, (0,32), 1, (16,32), 2, (16,16), 3, (0,16)],
+            quad_uv![0, (0., 2./3.), 1, (1./4.,2./3.), 2, (1./4.,1./3.), 3, (0.,1./3.)],
             // Bottom
-            quad_uv2![0, (16,48), 1, (16,32), 5, (32,32), 4, (32,48)],
+            quad_uv![0, (1./4.,1.), 1, (1./4.,2./3.), 5, (1./2.,2./3.), 4, (1./2.,1.)],
             // Right
-            quad_uv2![1, (16,32), 2, (16,16), 6, (32,16), 5, (32,32)],
+            quad_uv![1, (1./4.,2./3.), 2, (1./4.,1./3.), 6, (1./2.,1./3.), 5, (1./2.,2./3.)],
             // Top
-            quad_uv2![2, (16,16), 3, (16,0), 7, (32,0), 6, (32,16)],
+            quad_uv![2, (1./4.,1./3.), 3, (1./4.,0.), 7, (1./2.,0.), 6, (1./2.,1./3.)],
             // Left
-            quad_uv2![3, (64,16), 0, (64,32), 4, (48,32), 7, (48,16)],
+            quad_uv![3, (1.,1./3.), 0, (1.,2./3.), 4, (3./4.,2./3.), 7, (3./4.,1./3.)],
             // Back
-            quad_uv2![4, (48,32), 5, (32,32), 6, (32,16), 7, (48,16)]
+            quad_uv![4, (3./4.,2./3.), 5, (1./2.,2./3.), 6, (1./2.,1./3.), 7, (3./4.,1./3.)]
         ];
 
         Model
@@ -232,7 +237,7 @@ impl Model
         };
     }
 
-    pub fn poly_as_vertices(&self, poly: Poly) -> Vec<Vertex>
+    pub fn poly_as_vertices(&self, poly: &Poly) -> Vec<Vertex>
     {
         match poly
         {
@@ -253,32 +258,32 @@ impl Model
     }
 
     pub fn poly_as_tris_vertices(&self, poly: &Poly) -> Vec<Vertex>
-    {
+    { 
         match poly
         {
-            Poly::Triangle{ ix, uvs, ..} => 
-                [
-                    Vertex::new2(self.vertices[ix[0] as usize], uvs[0],WHITE), 
-                    Vertex::new2(self.vertices[ix[1] as usize], uvs[1], WHITE), 
-                    Vertex::new2(self.vertices[ix[2] as usize], uvs[2], WHITE),
-                ].to_vec(),
-            Poly::Quad{ ix, uvs, ..} => 
-                [
-                    Vertex::new2(self.vertices[ix[0] as usize], uvs[0],WHITE), 
-                    Vertex::new2(self.vertices[ix[1] as usize], uvs[1], WHITE), 
-                    Vertex::new2(self.vertices[ix[2] as usize], uvs[2], WHITE),
-                    Vertex::new2(self.vertices[ix[2] as usize], uvs[2],WHITE), 
-                    Vertex::new2(self.vertices[ix[3] as usize], uvs[3], WHITE), 
-                    Vertex::new2(self.vertices[ix[0] as usize], uvs[0], WHITE),
-                ].to_vec(),
+            Poly::Triangle{..} => 
+            {
+                return self.poly_as_vertices(poly);
+            },
+            Poly::Quad{..} =>
+            {
+                let tris = poly.to_tris();
+                let mut vertices = self.poly_as_vertices(&tris[0]);
+                vertices.append(&mut self.poly_as_vertices(&tris[1]));
+
+                return vertices;
+            }
         }
+
+        
+
     }
 
     pub fn get_closest_poly(&self, loc: Vec3) -> Option<Poly>
     {
         self.polys
             .iter()
-            .map(|poly| (*poly, triangle_distance_squared(loc, self.poly_as_vertices(*poly))))
+            .map(|poly| (*poly, poly_distance_squared(loc, self.poly_as_vertices(poly))))
             .min_by(|(_, dist_a), (_, dist_b)| dist_a.partial_cmp(dist_b).unwrap())
             .map(|(tri, _)| tri)
     }
@@ -303,15 +308,16 @@ impl Model
             Poly::Triangle{..} => 
             {
                 // gpt
-                let tri = self.poly_as_vertices(poly);
+                let tri = self.poly_as_vertices(&poly);
                 let normal = (tri[1].position - tri[0].position).cross(tri[2].position - tri[0].position);
                 let t = (normal.dot(tri[0].position - loc)) / (normal.dot(dir));
                 let p_int = (t * dir) + loc;
+
                 let c0 = (tri[1].position - tri[0].position).cross(p_int - tri[0].position);
                 let c1 = (tri[2].position - tri[1].position).cross(p_int - tri[1].position);
                 let c2 = (tri[0].position - tri[2].position).cross(p_int - tri[2].position);
                 // gpt
-                if (normal.dot(c0) >= 0.0 && normal.dot(c1) >= 0.0 && normal.dot(c2) >= 0.0)
+                if normal.dot(c0) >= 0.0 && normal.dot(c1) >= 0.0 && normal.dot(c2) >= 0.0
                 {
                     return Some(t);
                 }
@@ -325,15 +331,15 @@ impl Model
 
     pub fn send_ray(&self, loc: Vec3, dir: Vec3) -> Option<(Vec3, Poly)>
     {
-        let max_t = 100000.;
-        let mut lowest_t: f32 = max_t; // max value
+        let max_t = 1e6;
+        let mut lowest_t = max_t; // max value
         let mut target_poly = tri![0,0,0];
 
         for poly in self.polys.clone()
         {
             if let Some(t) = self.ray_tri_intersect(poly, loc, dir)
             {
-                if t < lowest_t // -t because ray_tri_intersect returns negative t usually
+                if t < lowest_t
                 {
                     lowest_t = t;
                     target_poly = poly;
@@ -353,10 +359,10 @@ impl Model
 
     pub fn send_ray_vertex(&self, loc: Vec3, dir: Vec3, angle_range: f32) -> Option<u16>
     {
-        let mut closest_distance: f32 = 50000.; // max value
-        let mut target: Option<u16> = None;
+        let mut closest_distance = 1e6; // max value
+        let mut target = None;
 
-        let mut i: u16 = 0;
+        let mut i= 0;
         for v in self.vertices.clone()
         {
             let dir_to_vec = (v - loc).normalize();
@@ -378,9 +384,9 @@ impl Model
         return target;
     }
 
-    pub fn calc_uv(&self, poly: Poly, loc: Vec3) -> Option<Vec2>
+    fn calc_uv_tri(&self, poly: Poly, loc: Vec3) -> Option<Vec2>
     {
-        let vertices = self.poly_as_vertices(poly);
+        let vertices = self.poly_as_vertices(&poly);
 
         let a = vertices[0].position;
         let b = vertices[1].position - a;
@@ -413,6 +419,24 @@ impl Model
         let result_uv = vertices[0].uv + alpha * uv_ab + beta * uv_ac;
 
         return Some(result_uv);
+    }
+
+    pub fn calc_uv(&self, poly: Poly, loc: Vec3) -> Option<Vec2>
+    {
+        match poly
+        {
+            Poly::Triangle {..} => self.calc_uv_tri(poly,loc),
+            Poly::Quad {..} =>
+            {
+                let tris = poly.to_tris();
+
+                if let Some(vec2) = self.calc_uv_tri(tris[0], loc)
+                {
+                    return Some(vec2);
+                }
+                return self.calc_uv_tri(tris[1],loc);
+            }
+        }
     }
 }
 

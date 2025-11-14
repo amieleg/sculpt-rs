@@ -11,8 +11,6 @@ use macroquad::prelude::*;
 use crate::aligners::*;
 use crate::my_model::*;
 use crate::tools::*;
-use crate::placer_tool::PlacingState;
-use crate::tri;
 
 /// Fields:
 /// - `ma`: temporary ModelAddition (the vertex being placed and its triangles)
@@ -20,7 +18,6 @@ use crate::tri;
 pub struct SingleVertexTool
 {
     pub ma: ModelAddition, // model addition
-    pub state: PlacingState,
     pub aligner: SimpleAligner,
 }
 
@@ -72,7 +69,6 @@ impl SingleVertexTool
         SingleVertexTool
         {
             ma: ModelAddition::new(),
-            state: PlacingState::Nothing,
             aligner: SimpleAligner{},
         }
     }
@@ -113,11 +109,12 @@ impl SingleVertexTool
         if let Some(poly) = closest_poly
         {
             let mut ma_polys = vec![];
-            let poly_indexes = &poly.to_vec();
+            let poly_indexes = &poly.ixs_as_vec();
+            let base_uvs: Vec<Vec2> = poly.uvs_as_vec();
 
             for i in 0..poly_indexes.len()
             {
-                ma_polys.push( tri![poly_indexes[i] ,poly_indexes[(i+1) % poly_indexes.len()], m.vertices.len() as u16]);
+                ma_polys.push( Poly::Triangle{ix: [poly_indexes[i], poly_indexes[(i+1) % poly_indexes.len()], m.vertices.len() as u16], uvs: [base_uvs[i], base_uvs[(i+1) % poly_indexes.len()], base_uvs[(i+2) % poly_indexes.len()]] , normal: Vec3::ZERO});
             }
 
             self.ma.polys = ma_polys;

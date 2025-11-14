@@ -1,14 +1,15 @@
 use macroquad::prelude::*;
 
-pub fn triangle_distance_squared(loc: Vec3, poly: Vec<Vertex>) -> f32
+pub fn poly_distance_squared(loc: Vec3, poly: Vec<Vertex>) -> f32
 {
     poly.iter().map(|v| loc.distance_squared(v.position)).sum::<f32>() / poly.len() as f32
 }
 
 pub fn drop_y_normalize(inp: Vec3) -> Vec3
 {
-    return vec3(inp.x, 0., inp.z).normalize();
+    vec3(inp.x, 0., inp.z).normalize()
 }
+
 
 pub struct TextureAtlas
 {

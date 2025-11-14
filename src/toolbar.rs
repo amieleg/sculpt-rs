@@ -29,24 +29,19 @@ impl Toolbar
 
         let tempmodel = Model::gen_cube_model(None);
         let cube_tool: Box<dyn ModelTool> = Box::new(PlacerTool::new(String::from("Cube Placer Tool"), ModelAddition{vertices: tempmodel.vertices, polys: tempmodel.polys}));
-        tools.push(cube_tool);
 
         let tempmodel = Model::new(None);
         let triangle_tool: Box<dyn ModelTool> = Box::new(PlacerTool::new(String::from("Other Placer Tool"), ModelAddition{vertices: tempmodel.vertices, polys: tempmodel.polys}));
-        tools.push(triangle_tool);
 
         let sv_tool: Box<dyn ModelTool> = Box::new(SingleVertexTool::new());
-        tools.push(sv_tool);
 
         let svm_tool: Box<dyn ModelTool> = Box::new(SingleVertexMover::new());
-        tools.push(svm_tool);
 
         let inspect_tool: Box<dyn ModelTool> = Box::new(InspectTool::new());
-        tools.push(inspect_tool);
 
         let brush_tool: Box<dyn ModelTool> = Box::new(BrushTool::new("assets/cubetexturecolor64-48.png").await);
-        tools.push(brush_tool);
 
+        tools.append(&mut vec![cube_tool, triangle_tool, sv_tool, svm_tool, inspect_tool, brush_tool]);
         
         Toolbar
         {

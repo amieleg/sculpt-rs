@@ -1,10 +1,5 @@
 use macroquad::prelude::*;
 use macroquad::amiel::*;
-use macroquad::ui::Skin;
-use macroquad::ui::Style;
-use macroquad::ui::StyleBuilder;
-use macroquad::ui::widgets::Group;
-use macroquad::ui::{self, hash, widgets, root_ui, Id};
 
 mod my_model;
 mod utils;
@@ -13,11 +8,8 @@ mod tools;
 mod toolbar;
 mod aligners;
 
-use crate::aligners::Aligner;
-use crate::aligners::GridAligner;
 use crate::my_model::*;
 use crate::player::*;
-use crate::tools::*;
 use crate::toolbar::Toolbar;
 use crate::utils::TextureAtlas;
 
@@ -109,7 +101,7 @@ async fn main() {
 
         // Draw crosshair
         draw_circle_lines(screen_width() / 2., screen_height() / 2., 5.0, 1.0, RED);
-        draw_circle_lines(screen_height() / 2., screen_width() / 2., 0.0, 1.0, RED);
+        draw_circle_lines(screen_width() / 2., screen_height() / 2., 0.0, 2.0, RED);
 
         // Draw debug if needed
         if f3

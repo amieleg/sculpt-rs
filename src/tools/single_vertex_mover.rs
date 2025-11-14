@@ -20,7 +20,7 @@ pub struct SingleVertexMover
 
 impl ModelTool for SingleVertexMover
 {
-    fn start_up(&mut self, m: &mut Model, p: &Player)
+    fn start_up(&mut self, _m: &mut Model, _p: &Player)
     {
 
     }
@@ -34,7 +34,7 @@ impl ModelTool for SingleVertexMover
             {
                 let looking_at_pos = m.vertices[index_vec as usize];
 
-                draw_sphere(looking_at_pos, 0.1, None, RED); // change this to use gen_mesh
+                draw_sphere(looking_at_pos, 0.05, None, RED); // change this to use gen_mesh
 
                 if is_mouse_button_pressed(MouseButton::Left)
                 {
@@ -66,6 +66,7 @@ impl ModelTool for SingleVertexMover
     {
         "Single Vertex Mover Tool"
     }
+
     fn get_texture_index(&self) -> usize
     {
         3
