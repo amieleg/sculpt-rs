@@ -7,6 +7,7 @@ mod player;
 mod tools;
 mod toolbar;
 mod aligners;
+mod file_io;
 
 use crate::my_model::*;
 use crate::player::*;
