@@ -10,6 +10,22 @@ pub fn drop_y_normalize(inp: Vec3) -> Vec3
     vec3(inp.x, 0., inp.z).normalize()
 }
 
+pub fn num_as_change(num: f32) -> String
+{
+    if num < 0.
+    {
+        return format!("{:.1}", num);
+    }
+    else 
+    {
+        return format!("+{:.1}", num);
+    }
+}
+
+pub fn vec_as_change(inp: Vec3) -> String
+{
+    return num_as_change(inp.x) + ", " + &num_as_change(inp.y) + ", " + &num_as_change(inp.z);
+}
 
 pub struct TextureAtlas
 {
@@ -30,7 +46,9 @@ impl TextureAtlas
 
         let inspect_tool = load_texture("assets/icons/inspect_tool.png").await.unwrap();
 
-        let textures = [inspect_tool, cube_tool, sv_tool, svm_tool, brush_tool];
+        let deleter_tool = load_texture("assets/icons/deleter_tool.png").await.unwrap();
+
+        let textures = [inspect_tool, cube_tool, sv_tool, svm_tool, brush_tool, deleter_tool];
         
         for t in &textures
         {

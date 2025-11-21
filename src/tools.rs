@@ -1,4 +1,6 @@
 use macroquad::prelude::*;
+use macroquad::ui::{Ui, hash, root_ui};
+use macroquad::ui::widgets::Window;
 
 use crate::my_model::*;
 use crate::player::Player;
@@ -9,6 +11,7 @@ pub mod hand_tool;
 pub mod single_vertex_mover;
 pub mod brush_tool;
 pub mod inspect_tool;
+pub mod deleter_tool;
 
 /// Trait to be implemented by any tool that is used to edit a model
 /// @start_up - called when the player starts using the tool, sets the tool's internal state, not always necessary 
@@ -19,9 +22,33 @@ pub mod inspect_tool;
 /// @gen_mesh - Takes a model and generates a mesh from it, usually adding some parts from the ModelTools internal state
 pub trait ModelTool
 {
-    fn start_up(&mut self, m: &mut Model, p: &Player);
-    fn update(&mut self, m: &mut Model, p: &Player);
-    fn gen_mesh(&self, m: &Model) -> Mesh; 
+    fn start_up(&mut self, _m: &mut Model, _p: &Player)
+    {
+
+    }
+    fn update(&mut self, _m: &mut Model, _p: &Player)
+    {
+
+    }
+    fn shut_down(&mut self, _m: &mut Model, _p: &Player)
+    {
+
+    }
+    fn open_settings(&mut self)
+    {
+        Window::new(hash!(screen_width() as u64, screen_height() as u64, "settings", self.get_name()), Vec2::new(screen_width() / 2. - 200., screen_height() / 2. - 150.), Vec2::new(400., 300.)).titlebar(false).ui(&mut *root_ui(), |ui|
+        {
+            self.draw_settings(ui);
+        });
+    }
+    fn draw_settings(&mut self, _ui: &mut Ui)
+    {
+
+    }
+    fn gen_mesh(&self, m: &Model) -> Mesh
+    {
+        return m.gen_mesh();
+    } 
     fn get_name(&self) -> &str;
     fn get_texture_index(&self) -> usize;
 }

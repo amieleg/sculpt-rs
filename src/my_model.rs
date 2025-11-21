@@ -274,9 +274,114 @@ impl Model
                 return vertices;
             }
         }
+    }
 
-        
+    fn adjust_polys(&mut self, index: u16)
+    {
+        for poly in &mut self.polys
+        {
+            match poly 
+            {
+                Poly::Triangle{ix,..} => 
+                {
+                    for i in ix
+                    {
+                        if *i > index 
+                        {
+                            *i -= 1;
+                        }
+                    }
+                }
+                Poly::Quad{ix,..} =>
+                {
+                    for i in ix
+                    {
+                        if *i > index 
+                        {
+                            *i -= 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
 
+    fn vertex_has_poly(&self, index: u16) -> bool
+    {
+        for &poly in &self.polys
+        {
+            if poly.ixs_as_vec().contains(&index)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    fn delete_poly_private(&mut self, index: u16, to_delete: &mut Vec<u16>)
+    {
+        let deleted = self.polys.remove(index as usize);
+
+        for i in deleted.ixs_as_vec()
+        {
+            if !to_delete.contains(&i)
+            {
+                if !self.vertex_has_poly(i)
+                {
+                    to_delete.push(i)
+                }
+            }
+        }
+    }
+
+    fn delete_and_adjust_vertices(&mut self, to_delete: &mut Vec<u16>)
+    {
+        to_delete.sort();
+
+        let mut extra = 0;
+        for index in to_delete.clone()
+        {
+            self.adjust_polys(index - extra);
+            extra += 1;
+        }
+
+        to_delete.reverse();
+        for index in to_delete.clone()
+        {
+            self.vertices.remove(index as usize);
+        }
+    }
+
+    pub fn delete_poly(&mut self, index: u16)
+    {
+        let mut to_delete = vec![];
+        self.delete_poly_private(index, &mut to_delete);
+
+        self.delete_and_adjust_vertices(&mut to_delete);
+    }
+
+    pub fn delete_vertex(&mut self, index: u16)
+    {
+        let mut to_delete = vec![];
+
+        to_delete.push(index);
+
+        let mut i = 0;
+        while i < self.polys.len()
+        {
+            let poly = self.polys[i];
+            if poly.ixs_as_vec().contains(&index)
+            {
+                self.delete_poly_private(i as u16, &mut to_delete);
+            }
+            else 
+            {
+                i += 1;
+            }
+        }
+
+        self.delete_and_adjust_vertices(&mut to_delete);
     }
 
     pub fn get_closest_poly(&self, loc: Vec3) -> Option<Poly>
@@ -329,12 +434,14 @@ impl Model
         }
     }
 
-    pub fn send_ray(&self, loc: Vec3, dir: Vec3) -> Option<(Vec3, Poly)>
+    pub fn send_ray(&self, loc: Vec3, dir: Vec3) -> Option<(Vec3, Poly, u16)>
     {
         let max_t = 1e6;
         let mut lowest_t = max_t; // max value
         let mut target_poly = tri![0,0,0];
+        let mut target_index = 0;
 
+        let mut i = 0;
         for poly in self.polys.clone()
         {
             if let Some(t) = self.ray_tri_intersect(poly, loc, dir)
@@ -343,13 +450,15 @@ impl Model
                 {
                     lowest_t = t;
                     target_poly = poly;
+                    target_index = i;
                 }
             }
+            i += 1;
         }
 
         if lowest_t != max_t
         {
-            return Some(((lowest_t * dir) + loc, target_poly));
+            return Some(((lowest_t * dir) + loc, target_poly, target_index));
         }
         else 
         {
@@ -439,6 +548,3 @@ impl Model
         }
     }
 }
-
-
-

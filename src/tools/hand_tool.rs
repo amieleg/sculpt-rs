@@ -9,16 +9,6 @@ pub struct HandTool
 
 impl ModelTool for HandTool
 {
-    fn start_up(&mut self, _m: &mut Model, _p: &Player) 
-    {
-        
-    }
-
-    fn update(&mut self, _m: &mut Model, _p: &Player)
-    {
-        
-    }
-
     fn gen_mesh(&self, _m: &Model) -> Mesh
     {
         return Mesh

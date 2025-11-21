@@ -25,6 +25,13 @@ fn conf() -> Conf {
 
 pub static PIXEL_SIZE: u16 = 1;
 
+#[derive(PartialEq)]
+pub enum EditorState
+{
+    Normal,
+    Settings,
+}
+
 #[macroquad::main(conf)]
 async fn main() {
     let texture = load_texture("assets/cubetexturecolor64-48.png").await.unwrap();
@@ -34,11 +41,13 @@ async fn main() {
 
     let mut f3 = false;
 
-    let mut m = Model::gen_cube_model(Some(texture));
+    let mut m = Model::new(Some(texture));//Model::gen_cube_model(Some(texture));
 
     let mut p = Player::new();
 
     let mut tb = Toolbar::new().await;// toolbar
+
+    let mut state = EditorState::Normal;
 
 
     set_cursor_grab(p.mi.grabbed);
@@ -49,7 +58,6 @@ async fn main() {
         // --- UPDATE / INPUT ---
 
         let delta = get_frame_time();
-        p.update(delta);
 
         if is_key_pressed(KeyCode::Escape)
         {
@@ -65,6 +73,22 @@ async fn main() {
         {
             f3 = !f3;
         }
+        if is_mouse_button_pressed(MouseButton::Right)
+        {
+            if state == EditorState::Normal
+            {
+                state = EditorState::Settings;
+                set_cursor_grab(false);
+                show_mouse(true);
+            }
+            else if state == EditorState::Settings
+            {
+                state = EditorState::Normal;
+                set_cursor_grab(true);
+                show_mouse(false);
+            }
+        }
+
 
         // --- 3D DRAWING ---
 
@@ -78,17 +102,25 @@ async fn main() {
             ..Default::default()
         });
 
-        if tb.update()
+        if state == EditorState::Normal
         {
+            p.update(delta);
+
+            if tb.update()
+            {
+                let old_tool = &mut tb.tools[tb.last_tool];
+                old_tool.shut_down(&mut m, &p);
+                let tool = tb.get_current_tool_mut();
+                tool.start_up(&mut m, &p);
+            }
+        
             let tool = tb.get_current_tool_mut();
-            tool.start_up(&mut m, &p);
+            tool.update(&mut m, &p);
         }
-    
-        let tool = tb.get_current_tool_mut();
-        tool.update(&mut m, &p);
 
         draw_grid(16, 1.0, BLACK, BLACK);
 
+        let tool = tb.get_current_tool_mut();
         let basemesh = m.gen_mesh();
         let fullmesh = tool.gen_mesh(&m);
 
@@ -111,6 +143,12 @@ async fn main() {
 
         tb.draw_toolbar(&icon_atlas);
 
+        if state == EditorState::Settings
+        {
+            let tool = tb.get_current_tool_mut();
+            tool.open_settings();
+        }
+
         next_frame().await;
     }
 }
@@ -128,25 +166,11 @@ pub fn draw_debug(p: &Player, m: &Model)
         30.0,
         BLACK,
     );
-    let intsect = m.send_ray(mi.position, mi.front);
-    if let Some(intsect) = intsect
-    {
-        draw_text(
-            format!("Intersect X: {} Y: {} Z: {}", intsect.0.x, intsect.0.y, intsect.0.z).as_str(),
-            10.0,
-            30.0 + 18.0,
-            30.0,
-            BLACK,
-        );
-    }
-    else 
-    {
-        draw_text(
-            format!("No intersect!").as_str(),
-            10.0,
-            30.0 + 18.0,
-            30.0,
-            BLACK,
-        );  
-    }
+    draw_text(
+        format!("Drawing {} vertices and {} polys", m.vertices.len(), m.polys.len()).as_str(),
+        10.0,
+        60.0,
+        30.0,
+        BLACK,
+    );
 }

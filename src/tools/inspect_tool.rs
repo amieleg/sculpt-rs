@@ -10,19 +10,10 @@ pub struct InspectTool
 
 impl ModelTool for InspectTool
 {
-    fn start_up(&mut self, _: &mut Model, _: &Player) 
-    {
-        
-    }
 
     fn update(&mut self, m: &mut Model, p: &Player)
     {
         self.draw_info(m, p);
-    }
-
-    fn gen_mesh(&self, m: &Model) -> Mesh
-    {
-        m.gen_mesh()
     }
 
     fn get_name(&self) -> &str
@@ -50,21 +41,23 @@ impl InspectTool
     {
         let looking_at = m.send_ray(p.mi.position, p.mi.front);
 
-        Window::new(hash!(screen_width() as u64, screen_height() as u64, "inspect_tool"), Vec2::new(screen_width() - 310., screen_height() - 210.), Vec2::new(300., 200.)).titlebar(false).ui(&mut *root_ui(), |ui|
+        Window::new(hash!(screen_width() as u64, screen_height() as u64, "inspect_tool"), Vec2::new(10., screen_height() - 210.), Vec2::new(300., 200.)).titlebar(false).ui(&mut *root_ui(), |ui|
         {
-            if let Some((_, poly)) = looking_at
+            if let Some((_, poly, _)) = looking_at
             {
                 let looking_at_vertices = m.poly_as_vertices(&poly);
                 
-                Group::new(hash!(), Vec2::new(290., 40.)).ui(ui, |ui| {
-                    ui.label(Vec2::new(0., 0.), "Looking at triangle:");
-                });
+                ui.label(Vec2::new(0., 0.), "Looking at polygon with vertices:");
 
-                Group::new(hash!(), Vec2::new(290., 150.)).position(vec2(0., 50.)).ui(ui, |ui| {
+
+                Group::new(hash!(), Vec2::new(290., 150.)).position(vec2(0., 30.)).ui(ui, |ui| 
+                {
+
                     for v in looking_at_vertices
                     {
-                        Group::new(hash!(), Vec2::new(280., 50.)).ui(ui, |ui| {
-                            ui.label(Vec2::new(0., 0.), &format!("Vertex {}:", v.position));
+                        Group::new(hash!(), Vec2::new(280., 30.)).ui(ui, |ui| {
+                            ui.label(Vec2::new(0., 0.), &format!("Pos: {} UV: {}", v.position, v.uv));
+
                         });
                     }
                 });

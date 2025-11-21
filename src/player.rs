@@ -2,6 +2,7 @@ use crate::utils::drop_y_normalize;
 use macroquad::prelude::*;
 
 
+
 pub const MOVE_SPEED: f32 = 0.02;
 pub const LOOK_SPEED: f32 = 0.1;
 
@@ -61,6 +62,16 @@ impl Player
         {
             self.mi.position -= self.mi.world_up * MOVE_SPEED;
         }
+    }
+
+    // For X and Z directions, takes the largest direction of the front vector
+    pub fn front_as_direction(&self) -> Vec3
+    {
+        if self.mi.front.x.abs() > self.mi.front.z.abs()
+        {
+            return vec3(self.mi.front.x, 0., 0.).normalize()
+        }
+        return vec3(0.,0.,self.mi.front.z).normalize()
     }
 }
 

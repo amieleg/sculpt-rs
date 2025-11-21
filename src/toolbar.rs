@@ -8,6 +8,7 @@ use crate::tools::single_vertex_tool::*;
 use crate::tools::single_vertex_mover::*;
 use crate::tools::brush_tool::*;
 use crate::tools::inspect_tool::*;
+use crate::tools::deleter_tool::*;
 use crate::utils::TextureAtlas;
 
 const TOOLBAR_SIZE: usize = 9;
@@ -17,6 +18,7 @@ const TOOLBAR_HEIGHT: f32 = ICON_SIZE + 6.;
 pub struct Toolbar
 {
     pub tools: Vec<Box<dyn ModelTool>>,
+    pub last_tool: usize,
     pub selected_tool: usize,
 }
 
@@ -41,12 +43,15 @@ impl Toolbar
 
         let brush_tool: Box<dyn ModelTool> = Box::new(BrushTool::new("assets/cubetexturecolor64-48.png").await);
 
-        tools.append(&mut vec![cube_tool, triangle_tool, sv_tool, svm_tool, inspect_tool, brush_tool]);
+        let deleter_tool: Box<dyn ModelTool> = Box::new(DeleterTool::new());
+
+        tools.append(&mut vec![cube_tool, triangle_tool, sv_tool, svm_tool, inspect_tool, brush_tool, deleter_tool]);
         
         Toolbar
         {
             tools: tools,
             selected_tool: 0,
+            last_tool: 0,
         }
     }
 
@@ -82,7 +87,6 @@ impl Toolbar
 
     pub fn update(&mut self) -> bool
     {
-        let tool_before = self.selected_tool;
         if is_key_pressed(KeyCode::Key0)
         {
             self.switch_tool_to(0);
@@ -107,25 +111,26 @@ impl Toolbar
         {
             self.switch_tool_to(5);
         }
-                else if is_key_pressed(KeyCode::Key6)
+        else if is_key_pressed(KeyCode::Key6)
         {
             self.switch_tool_to(6);
         }
-                else if is_key_pressed(KeyCode::Key7)
+        else if is_key_pressed(KeyCode::Key7)
         {
             self.switch_tool_to(7);
         }
-                else if is_key_pressed(KeyCode::Key8)
+        else if is_key_pressed(KeyCode::Key8)
         {
             self.switch_tool_to(8);
         }
-                else if is_key_pressed(KeyCode::Key9)
+        else if is_key_pressed(KeyCode::Key9)
         {
             self.switch_tool_to(9);
         }
 
-        if tool_before != self.selected_tool
+        if self.last_tool != self.selected_tool
         {
+            self.last_tool = self.selected_tool;
             return true;
         }
         return false;
