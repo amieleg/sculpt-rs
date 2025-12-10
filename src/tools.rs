@@ -12,6 +12,7 @@ pub mod single_vertex_mover;
 pub mod brush_tool;
 pub mod inspect_tool;
 pub mod deleter_tool;
+pub mod single_poly_tool;
 
 /// Trait to be implemented by any tool that is used to edit a model
 /// @start_up - called when the player starts using the tool, sets the tool's internal state, not always necessary 

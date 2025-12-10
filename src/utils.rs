@@ -22,6 +22,16 @@ pub fn num_as_change(num: f32) -> String
     }
 }
 
+pub fn fvec2(inp: Vec2) -> String
+{
+    return format!("{} {}", inp.x, inp.y);
+}
+
+pub fn fvec3(inp: Vec3) -> String
+{
+    return format!("{} {} {}", inp.x, inp.y, inp.z);
+}
+
 pub fn vec_as_change(inp: Vec3) -> String
 {
     return num_as_change(inp.x) + ", " + &num_as_change(inp.y) + ", " + &num_as_change(inp.z);

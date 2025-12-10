@@ -17,6 +17,10 @@ impl ModelTool for BrushTool
 {
     fn update(&mut self, m: &mut Model, p: &Player)
     {
+        if is_key_pressed(KeyCode::C)
+        {
+            self.resize(64,200);
+        }
         if let Some((loc, poly, _)) = m.send_ray(p.mi.position, p.mi.front)
         {
             if is_mouse_button_down(MouseButton::Left)
@@ -27,10 +31,10 @@ impl ModelTool for BrushTool
                     let pixel_y = (uv.y * self.image.height as f32) as u32;
 
                     self.image.set_pixel(pixel_x, pixel_y, self.color);
+                    self.merge(m);
                 }
             }
         }
-        self.merge(m);
         self.draw_info();
     }
 
@@ -78,7 +82,18 @@ impl BrushTool
 
     pub fn merge(&self, m: &mut Model)
     {
-        m.texture.as_mut().unwrap().update(&self.image);
+        if let Some(texture) = m.texture.as_mut()
+        {
+            if self.image.height() == texture.height() as usize && self.image.width() == texture.width() as usize
+            {
+                texture.update(&self.image);
+            }
+            else 
+            {
+                *texture = Texture2D::from_image(&self.image);
+                texture.set_filter(FilterMode::Nearest);
+            }
+        }
     }
 
     pub fn draw_info(&self)
@@ -100,5 +115,17 @@ impl BrushTool
 
             image_canvas.image(Rect::new(image_cursor.x, color_cursor.y+25., 290., 170.), &texture);
         });
+    }
+
+    pub fn resize(&mut self, new_width: u16, new_height: u16)
+    {
+        let mut new_bytes = vec![0; (new_width * new_height * 4) as usize];
+        let mut i = 0;
+        for byte in &self.image.bytes
+        {
+            new_bytes[i] = *byte;
+            i += 1;
+        }
+        self.image = Image{bytes: new_bytes, height: new_height, width: new_width};
     }
 }

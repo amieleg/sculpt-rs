@@ -8,9 +8,12 @@ mod tools;
 mod toolbar;
 mod aligners;
 mod file_io;
+mod paused;
 
+use crate::file_io::*;
 use crate::my_model::*;
 use crate::player::*;
+use crate::paused::draw_paused;
 use crate::toolbar::Toolbar;
 use crate::utils::TextureAtlas;
 
@@ -24,25 +27,39 @@ fn conf() -> Conf {
     }
 }
 
-pub static PIXEL_SIZE: u16 = 1;
+pub const PIXEL_SIZE: u16 = 1;
+
+pub static mut SMALL_GRID_SIZE: f32 = 0.1;
+pub static mut PLAYER_REACH: f32 = 0.1;
+pub static mut VERTEX_IDENTIFIER_SIZE: f32 = 0.1;
 
 #[derive(PartialEq)]
 pub enum EditorState
 {
     Normal,
-    Settings,
+    ToolSettings,
+    Paused
+}
+
+pub struct FileSettings
+{
+    model_file_path: String,
+    texture_file_path: String,
 }
 
 #[macroquad::main(conf)]
 async fn main() {
-    let texture = load_texture("assets/cubetexturecolor64-48.png").await.unwrap();
+    let mut file_settings = FileSettings{model_file_path: String::from("out.obj"), texture_file_path: String::from("assets/cubetexturecolor64-48.png")};
+    let texture = load_texture(&file_settings.texture_file_path).await.unwrap();
     texture.set_filter(FilterMode::Nearest);
 
     let icon_atlas = TextureAtlas::icons_atlas().await;
 
     let mut f3 = false;
 
-    let mut m = Model::new(Some(texture));//Model::gen_cube_model(Some(texture));
+    //let mut m = Model::new(Some(texture));//Model::gen_cube_model(Some(texture));
+    let mut m = load_obj_file(&file_settings.model_file_path).unwrap();
+    m.texture = Some(texture);
 
     let mut p = Player::new();
 
@@ -62,7 +79,15 @@ async fn main() {
 
         if is_key_pressed(KeyCode::Escape)
         {
-            break;
+            if state == EditorState::Paused
+            {
+                state = EditorState::Normal;
+            }
+            else 
+            {
+                state = EditorState::Paused;
+            }
+
         }
         if is_key_pressed(KeyCode::Tab) 
         {
@@ -74,19 +99,22 @@ async fn main() {
         {
             f3 = !f3;
         }
-        if is_mouse_button_pressed(MouseButton::Right)
+        if state != EditorState::Paused
         {
-            if state == EditorState::Normal
+            if is_mouse_button_pressed(MouseButton::Right)
             {
-                state = EditorState::Settings;
-                set_cursor_grab(false);
-                show_mouse(true);
-            }
-            else if state == EditorState::Settings
-            {
-                state = EditorState::Normal;
-                set_cursor_grab(true);
-                show_mouse(false);
+                if state == EditorState::Normal
+                {
+                    state = EditorState::ToolSettings;
+                    set_cursor_grab(false);
+                    show_mouse(true);
+                }
+                else if state == EditorState::ToolSettings
+                {
+                    state = EditorState::Normal;
+                    set_cursor_grab(true);
+                    show_mouse(false);
+                }
             }
         }
 
@@ -109,21 +137,18 @@ async fn main() {
 
             if tb.update()
             {
-                let old_tool = &mut tb.tools[tb.last_tool];
-                old_tool.shut_down(&mut m, &p);
-                let tool = tb.get_current_tool_mut();
-                tool.start_up(&mut m, &p);
+                tb.tools[tb.last_tool].shut_down(&mut m, &p);
+
+                tb.get_current_tool_mut().start_up(&mut m, &p);
             }
         
-            let tool = tb.get_current_tool_mut();
-            tool.update(&mut m, &p);
+            tb.get_current_tool_mut().update(&mut m, &p);
         }
 
         draw_grid(16, 1.0, BLACK, BLACK);
 
-        let tool = tb.get_current_tool_mut();
         let basemesh = m.gen_mesh();
-        let fullmesh = tool.gen_mesh(&m);
+        let fullmesh = tb.get_current_tool_mut().gen_mesh(&m);
 
         draw_mesh(&basemesh);
         draw_mesh_wires(&fullmesh, BLACK);
@@ -144,10 +169,13 @@ async fn main() {
 
         tb.draw_toolbar(&icon_atlas);
 
-        if state == EditorState::Settings
+        if state == EditorState::ToolSettings
         {
-            let tool = tb.get_current_tool_mut();
-            tool.open_settings();
+            tb.get_current_tool_mut().open_settings();
+        }
+        if state == EditorState::Paused
+        {
+            draw_paused(&file_settings, &mut m);
         }
 
         next_frame().await;

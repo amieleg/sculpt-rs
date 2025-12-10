@@ -2,20 +2,42 @@ use macroquad::prelude::*;
 use crate::utils::*;
 
 #[macro_export]
+macro_rules! tri {
+    ($a:expr, $b:expr, $c:expr) => {
+        Poly { 
+            ixs: vec![$a, $b, $c], 
+            uvs: vec![Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+            normal: Vec3::ZERO 
+        }
+    };
+}
+
+#[macro_export]
 macro_rules! tri_uv {
     (
         $a:expr, ($ua:expr, $va:expr),
         $b:expr, ($ub:expr, $vb:expr),
         $c:expr, ($uc:expr, $vc:expr)
     ) => {
-        crate::Poly::Triangle {
-            ix: [$a, $b, $c],
-            uvs: [
+        Poly {
+            ixs: vec![$a, $b, $c],
+            uvs: vec![
                 vec2($ua, $va),
                 vec2($ub, $vb),
                 vec2($uc, $vc),
             ],
             normal: Vec3::ZERO, 
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! quad {
+    ($a:expr, $b:expr, $c:expr, $d:expr) => {
+        Poly { 
+            ixs: vec![$a, $b, $c, $d], 
+            uvs: vec![Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
+            normal: Vec3::ZERO 
         }
     };
 }
@@ -28,9 +50,9 @@ macro_rules! quad_uv {
         $c:expr, ($uc:expr, $vc:expr),
         $d:expr, ($ud:expr, $vd:expr)
     ) => {
-        crate::Poly::Quad {
-            ix: [$a, $b, $c, $d],
-            uvs: [
+        Poly {
+            ixs: vec![$a, $b, $c, $d],
+            uvs: vec![
                 vec2($ua, $va),
                 vec2($ub, $vb),
                 vec2($uc, $vc),
@@ -50,9 +72,9 @@ macro_rules! quad_uv2 {
         $d:expr, ($ud:expr, $vd:expr),
         ($w:expr, $h:expr)
     ) => {
-        crate::Poly::Quad {
-            ix: [$a, $b, $c, $d],
-            uvs: [
+        Poly {
+            ixs: vec![$a, $b, $c, $d],
+            uvs: vec![
                 vec2($ua/$w, $va/$h),
                 vec2($ub/$w, $vb/$h),
                 vec2($uc/$w, $vc/$h),
@@ -63,89 +85,96 @@ macro_rules! quad_uv2 {
     };
 }
 
-#[macro_export]
-macro_rules! tri {
-    ($a:expr, $b:expr, $c:expr) => {
-        $crate::Poly::Triangle { 
-            ix: [$a, $b, $c], 
-            uvs: [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
-            normal: Vec3::ZERO 
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! quad {
-    ($a:expr, $b:expr, $c:expr, $d:expr) => {
-        $crate::Poly::Quad { 
-            ix: [$a, $b, $c, $d], 
-            uvs: [Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
-            normal: Vec3::ZERO 
-        }
-    };
-}
-
-#[derive(Clone, Copy)]
-pub enum Poly
+pub struct Tri
 {
-    Triangle {
-        ix: [u16; 3],
-        uvs: [Vec2; 3],
-        normal: Vec3
-    },
-    Quad {
-        ix: [u16; 4],
-        uvs: [Vec2; 4],
-        normal: Vec3
-    }
+    ixs: [u16; 3],
+    uvs: [Vec2; 3],
+    normal: Vec3
+}
+
+#[derive(Clone)]
+pub struct Poly
+{
+    ixs: Vec<u16>,
+    uvs: Vec<Vec2>,
+    normal: Vec3
 }
 
 impl Poly
 {
-    pub fn ixs_as_vec(&self) -> Vec<u16>
+    pub fn to_tris(&self) -> Vec<Tri>
     {
-        match self
+        if self.ixs.len() == 3
         {
-            Poly::Triangle { ix,..} => ix.to_vec(),
-            Poly::Quad { ix,..} => ix.to_vec(),
+            return vec!
+            [
+                Tri
+                {
+                    ixs: [self.ixs[0], self.ixs[1], self.ixs[2]],
+                    uvs: [self.uvs[0], self.uvs[1], self.uvs[2]],
+                    normal: self.normal
+                }
+            ]
         }
-    }
-
-    pub fn uvs_as_vec(&self) -> Vec<Vec2>
-    {
-        match self
+        if self.ixs.len() == 4
         {
-            Poly::Triangle {uvs,..} => uvs.to_vec(),
-            Poly::Quad {uvs,..} => uvs.to_vec(),
+            return vec!
+            [
+                Tri
+                {
+                    ixs: [self.ixs[0], self.ixs[1], self.ixs[2]],
+                    uvs: [self.uvs[0], self.uvs[1], self.uvs[2]],
+                    normal: self.normal
+                },
+                Tri
+                {
+                    ixs: [self.ixs[0], self.ixs[2], self.ixs[3]],
+                    uvs: [self.uvs[0], self.uvs[2], self.uvs[3]],
+                    normal: self.normal
+                }
+            ]
         }
-    }
-
-    pub fn to_tris(&self) -> Vec<Poly>
-    {
-        match self
+        if self.ixs.len() >= 5
         {
-            Poly::Triangle { ..} => vec![*self],
-            Poly::Quad { ix, uvs, normal} => vec![ 
-                Poly::Triangle{ix: [ix[0], ix[1], ix[2]], uvs: [uvs[0], uvs[1], uvs[2]], normal: *normal},
-                Poly::Triangle{ix: [ix[2], ix[3], ix[0]], uvs: [uvs[2], uvs[3], uvs[0]], normal: *normal}
-            ],
-        }
-    }
+            let len = self.ixs.len();
+            let mut tris = vec!
+            [
+                Tri
+                {
+                    ixs: [self.ixs[0], self.ixs[1], self.ixs[2]],
+                    uvs: [self.uvs[0], self.uvs[1], self.uvs[2]],
+                    normal: self.normal
+                },
+                Tri
+                {
+                    ixs: [self.ixs[0], self.ixs[len-2], self.ixs[len-1]],
+                    uvs: [self.uvs[0], self.uvs[len-2], self.uvs[len-1]],
+                    normal: self.normal
+                }
+            ];
 
-    pub fn add_to_indeces(&self, num: u16) -> Poly
-    {
-        match self
-        {
-            Poly::Triangle {ix, uvs, normal} => Poly::Triangle {
-                ix: [ix[0] + num, ix[1] + num, ix[2] + num], 
-                uvs: *uvs,
-                normal: *normal
-            },
-            Poly::Quad {ix, uvs, normal} => Poly::Quad {
-                ix: [ix[0] + num, ix[1] + num, ix[2] + num, ix[3] + num], 
-                uvs: *uvs,
-                normal: *normal
+            for i in 2..(len-2)
+            {
+                tris.push
+                (
+                    Tri
+                    {
+                        ixs: [self.ixs[0], self.ixs[i], self.ixs[i+1]],
+                        uvs: [self.uvs[0], self.uvs[i+1], self.uvs[i+1]],
+                        normal: self.normal
+                    }
+                );
             }
+        }
+
+        return vec![];
+    }
+
+    pub fn add_to_indeces(&mut self, num: u16)
+    {
+        for ix in &mut self.ixs
+        {
+            *ix += num;
         }
     }
 }
@@ -239,68 +268,33 @@ impl Model
 
     pub fn poly_as_vertices(&self, poly: &Poly) -> Vec<Vertex>
     {
-        match poly
-        {
-            Poly::Triangle{ ix, uvs, ..} => 
-                [
-                    Vertex::new2(self.vertices[ix[0] as usize], uvs[0],WHITE), 
-                    Vertex::new2(self.vertices[ix[1] as usize], uvs[1], WHITE), 
-                    Vertex::new2(self.vertices[ix[2] as usize], uvs[2], WHITE),
-                ].to_vec(),
-            Poly::Quad{ ix, uvs, ..} => 
-                [
-                    Vertex::new2(self.vertices[ix[0] as usize], uvs[0],WHITE), 
-                    Vertex::new2(self.vertices[ix[1] as usize], uvs[1], WHITE), 
-                    Vertex::new2(self.vertices[ix[2] as usize], uvs[2], WHITE),
-                    Vertex::new2(self.vertices[ix[3] as usize], uvs[3], WHITE),
-                ].to_vec(),
-        }
+        return poly.ixs.iter().map(|ix| Vertex::new2(self.vertices[*ix as usize], poly.uvs[*ix as usize], WHITE)).collect();
+    }
+
+    pub fn tri_as_vertices(&self, tri: &Tri) -> Vec<Vertex>
+    {
+        return vec!
+        [
+            Vertex::new2(self.vertices[tri.ixs[0] as usize], tri.uvs[0], WHITE),
+            Vertex::new2(self.vertices[tri.ixs[1] as usize], tri.uvs[1], WHITE),
+            Vertex::new2(self.vertices[tri.ixs[2] as usize], tri.uvs[2], WHITE)
+        ]
     }
 
     pub fn poly_as_tris_vertices(&self, poly: &Poly) -> Vec<Vertex>
     { 
-        match poly
-        {
-            Poly::Triangle{..} => 
-            {
-                return self.poly_as_vertices(poly);
-            },
-            Poly::Quad{..} =>
-            {
-                let tris = poly.to_tris();
-                let mut vertices = self.poly_as_vertices(&tris[0]);
-                vertices.append(&mut self.poly_as_vertices(&tris[1]));
-
-                return vertices;
-            }
-        }
+        return poly.to_tris().iter().map(|tri| self.tri_as_vertices(tri)).flat_map(|v| v).collect();
     }
 
     fn adjust_polys(&mut self, index: u16)
     {
         for poly in &mut self.polys
         {
-            match poly 
+            for i in &mut poly.ixs
             {
-                Poly::Triangle{ix,..} => 
+                if *i > index 
                 {
-                    for i in ix
-                    {
-                        if *i > index 
-                        {
-                            *i -= 1;
-                        }
-                    }
-                }
-                Poly::Quad{ix,..} =>
-                {
-                    for i in ix
-                    {
-                        if *i > index 
-                        {
-                            *i -= 1;
-                        }
-                    }
+                    *i -= 1;
                 }
             }
         }
@@ -446,7 +440,7 @@ impl Model
         {
             if let Some(t) = self.ray_tri_intersect(poly, loc, dir)
             {
-                if t < lowest_t
+                if t < lowest_t && t >= 0.
                 {
                     lowest_t = t;
                     target_poly = poly;

@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui, Skin};
 use crate::my_model::Model;
-use crate::tools::*;
+use crate::{tools::*};
 use crate::tools::hand_tool::*;
 use crate::tools::placer_tool::*;
 use crate::tools::single_vertex_tool::*;
@@ -9,6 +9,7 @@ use crate::tools::single_vertex_mover::*;
 use crate::tools::brush_tool::*;
 use crate::tools::inspect_tool::*;
 use crate::tools::deleter_tool::*;
+use crate::tools::single_poly_tool::*;
 use crate::utils::TextureAtlas;
 
 const TOOLBAR_SIZE: usize = 9;
@@ -37,6 +38,8 @@ impl Toolbar
 
         let sv_tool: Box<dyn ModelTool> = Box::new(SingleVertexTool::new());
 
+        let sp_tool: Box<dyn ModelTool> = Box::new(SinglePolyTool::new());
+
         let svm_tool: Box<dyn ModelTool> = Box::new(SingleVertexMover::new());
 
         let inspect_tool: Box<dyn ModelTool> = Box::new(InspectTool::new());
@@ -45,7 +48,7 @@ impl Toolbar
 
         let deleter_tool: Box<dyn ModelTool> = Box::new(DeleterTool::new());
 
-        tools.append(&mut vec![cube_tool, triangle_tool, sv_tool, svm_tool, inspect_tool, brush_tool, deleter_tool]);
+        tools.append(&mut vec![cube_tool, triangle_tool, sv_tool, sp_tool, svm_tool, inspect_tool, brush_tool, deleter_tool]);
         
         Toolbar
         {
