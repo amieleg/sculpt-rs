@@ -87,17 +87,17 @@ macro_rules! quad_uv2 {
 
 pub struct Tri
 {
-    ixs: [u16; 3],
-    uvs: [Vec2; 3],
-    normal: Vec3
+    pub ixs: [u16; 3],
+    pub uvs: [Vec2; 3],
+    pub normal: Vec3
 }
 
 #[derive(Clone)]
 pub struct Poly
 {
-    ixs: Vec<u16>,
-    uvs: Vec<Vec2>,
-    normal: Vec3
+    pub ixs: Vec<u16>,
+    pub uvs: Vec<Vec2>,
+    pub normal: Vec3
 }
 
 impl Poly
@@ -170,12 +170,14 @@ impl Poly
         return vec![];
     }
 
-    pub fn add_to_indeces(&mut self, num: u16)
+    pub fn add_to_indeces(&self, num: u16) -> Poly
     {
-        for ix in &mut self.ixs
+        let mut p = self.clone();
+        for ix in &mut p.ixs
         {
             *ix += num;
         }
+        return p;
     }
 }
 
@@ -268,7 +270,7 @@ impl Model
 
     pub fn poly_as_vertices(&self, poly: &Poly) -> Vec<Vertex>
     {
-        return poly.ixs.iter().map(|ix| Vertex::new2(self.vertices[*ix as usize], poly.uvs[*ix as usize], WHITE)).collect();
+        return poly.ixs.iter().enumerate().map(|(i,ix)| Vertex::new2(self.vertices[*ix as usize], poly.uvs[i], WHITE)).collect();
     }
 
     pub fn tri_as_vertices(&self, tri: &Tri) -> Vec<Vertex>
@@ -303,9 +305,9 @@ impl Model
 
     fn vertex_has_poly(&self, index: u16) -> bool
     {
-        for &poly in &self.polys
+        for poly in &self.polys
         {
-            if poly.ixs_as_vec().contains(&index)
+            if poly.ixs.contains(&index)
             {
                 return true;
             }
@@ -317,7 +319,7 @@ impl Model
     {
         let deleted = self.polys.remove(index as usize);
 
-        for i in deleted.ixs_as_vec()
+        for i in deleted.ixs
         {
             if !to_delete.contains(&i)
             {
@@ -364,8 +366,8 @@ impl Model
         let mut i = 0;
         while i < self.polys.len()
         {
-            let poly = self.polys[i];
-            if poly.ixs_as_vec().contains(&index)
+            let poly = &self.polys[i];
+            if poly.ixs.contains(&index)
             {
                 self.delete_poly_private(i as u16, &mut to_delete);
             }
@@ -382,50 +384,46 @@ impl Model
     {
         self.polys
             .iter()
-            .map(|poly| (*poly, poly_distance_squared(loc, self.poly_as_vertices(poly))))
+            .map(|poly| (poly.clone(), poly_distance_squared(loc, self.poly_as_vertices(poly))))
             .min_by(|(_, dist_a), (_, dist_b)| dist_a.partial_cmp(dist_b).unwrap())
             .map(|(tri, _)| tri)
     }
 
-    pub fn ray_tri_intersect(&self, poly: Poly, loc: Vec3, dir: Vec3) -> Option<f32> // needs fixing cause its no longer tri!!
+    pub fn ray_tri_intersect(&self, tri: &Tri, loc: Vec3, dir: Vec3) -> Option<f32> // needs fixing cause its no longer tri!!
     {
-        match poly
-        {
-            Poly::Quad{..} => 
-            {
-                let tris = poly.to_tris();
-                if let Some(t) = self.ray_tri_intersect(tris[0], loc, dir)
-                {
-                    return Some(t);
-                }
-                if let Some(t) = self.ray_tri_intersect(tris[1], loc, dir)
-                {
-                    return Some(t)
-                }
-                return None;
-            }
-            Poly::Triangle{..} => 
-            {
-                // gpt
-                let tri = self.poly_as_vertices(&poly);
-                let normal = (tri[1].position - tri[0].position).cross(tri[2].position - tri[0].position);
-                let t = (normal.dot(tri[0].position - loc)) / (normal.dot(dir));
-                let p_int = (t * dir) + loc;
+        // gpt
+        let tri = self.tri_as_vertices(tri);
+        let normal = (tri[1].position - tri[0].position).cross(tri[2].position - tri[0].position);
+        let t = (normal.dot(tri[0].position - loc)) / (normal.dot(dir));
+        let p_int = (t * dir) + loc;
 
-                let c0 = (tri[1].position - tri[0].position).cross(p_int - tri[0].position);
-                let c1 = (tri[2].position - tri[1].position).cross(p_int - tri[1].position);
-                let c2 = (tri[0].position - tri[2].position).cross(p_int - tri[2].position);
-                // gpt
-                if normal.dot(c0) >= 0.0 && normal.dot(c1) >= 0.0 && normal.dot(c2) >= 0.0
-                {
-                    return Some(t);
-                }
-                else 
-                {      
-                    return None;
-                }
+        let c0 = (tri[1].position - tri[0].position).cross(p_int - tri[0].position);
+        let c1 = (tri[2].position - tri[1].position).cross(p_int - tri[1].position);
+        let c2 = (tri[0].position - tri[2].position).cross(p_int - tri[2].position);
+        // gpt
+        if normal.dot(c0) >= 0.0 && normal.dot(c1) >= 0.0 && normal.dot(c2) >= 0.0
+        {
+            return Some(t);
+        }
+        else 
+        {      
+            return None;
+        }
+    }
+
+    pub fn ray_intersect(&self, poly: &Poly, loc: Vec3, dir: Vec3) -> Option<f32>
+    {
+        let tris = poly.to_tris();
+
+        for tri in &tris
+        {
+            if let Some(t) = self.ray_tri_intersect(tri, loc, dir)
+            {
+                return Some(t);
             }
         }
+
+        return None;
     }
 
     pub fn send_ray(&self, loc: Vec3, dir: Vec3) -> Option<(Vec3, Poly, u16)>
@@ -438,7 +436,7 @@ impl Model
         let mut i = 0;
         for poly in self.polys.clone()
         {
-            if let Some(t) = self.ray_tri_intersect(poly, loc, dir)
+            if let Some(t) = self.ray_intersect(&poly, loc, dir)
             {
                 if t < lowest_t && t >= 0.
                 {
@@ -487,9 +485,9 @@ impl Model
         return target;
     }
 
-    fn calc_uv_tri(&self, poly: Poly, loc: Vec3) -> Option<Vec2>
+    fn calc_uv_tri(&self, tri: &Tri, loc: Vec3) -> Option<Vec2>
     {
-        let vertices = self.poly_as_vertices(&poly);
+        let vertices = self.tri_as_vertices(tri);
 
         let a = vertices[0].position;
         let b = vertices[1].position - a;
@@ -526,19 +524,16 @@ impl Model
 
     pub fn calc_uv(&self, poly: Poly, loc: Vec3) -> Option<Vec2>
     {
-        match poly
-        {
-            Poly::Triangle {..} => self.calc_uv_tri(poly,loc),
-            Poly::Quad {..} =>
-            {
-                let tris = poly.to_tris();
+        let tris = poly.to_tris();
 
-                if let Some(vec2) = self.calc_uv_tri(tris[0], loc)
-                {
-                    return Some(vec2);
-                }
-                return self.calc_uv_tri(tris[1],loc);
+        for tri in &tris
+        {
+            if let Some(vec2) = self.calc_uv_tri(tri, loc)
+            {
+                return Some(vec2);
             }
         }
+
+        return None;
     }
 }

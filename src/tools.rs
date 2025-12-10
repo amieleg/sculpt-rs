@@ -76,31 +76,25 @@ impl ModelAddition
     // Generates a mesh with both a given model and the modeladdition
     pub fn gen_mesh(&self, m: &Model) -> Mesh
     {
-        let mut positions = m.vertices.clone();
-        positions.append(&mut self.vertices.clone());
+        let mut poss = m.vertices.clone();
+        poss.append(&mut self.vertices.clone());
 
         let mut base = m.gen_mesh();
 
         for poly in &self.polys
         {
-            match poly
-            {
-                Poly::Triangle{ ix, uvs, ..} => 
-                    base.vertices.append(&mut [
-                        Vertex::new2(positions[ix[0] as usize], uvs[0],WHITE), 
-                        Vertex::new2(positions[ix[1] as usize], uvs[1], WHITE), 
-                        Vertex::new2(positions[ix[2] as usize], uvs[2], WHITE),
-                    ].to_vec()),
-                Poly::Quad{ ix, uvs, ..} => 
-                    base.vertices.append(&mut [
-                        Vertex::new2(positions[ix[0] as usize], uvs[0],WHITE), 
-                        Vertex::new2(positions[ix[1] as usize], uvs[1], WHITE), 
-                        Vertex::new2(positions[ix[2] as usize], uvs[2], WHITE),
-                        Vertex::new2(positions[ix[2] as usize], uvs[2],WHITE), 
-                        Vertex::new2(positions[ix[3] as usize], uvs[3], WHITE), 
-                        Vertex::new2(positions[ix[0] as usize], uvs[0], WHITE),
-                    ].to_vec()),
-            }
+            let mut vexs_to_add: Vec<Vertex> = poly.to_tris().iter().map(|tri| 
+                    vec![
+                        Vertex::new2(poss[tri.ixs[0] as usize], tri.uvs[0], WHITE),
+                        Vertex::new2(poss[tri.ixs[1] as usize], tri.uvs[1], WHITE),
+                        Vertex::new2(poss[tri.ixs[2] as usize], tri.uvs[2], WHITE)
+                    ]
+                ).flat_map(|v| v).collect();
+
+            base.vertices.append
+            (
+                &mut vexs_to_add
+            );
         }
 
         base.indices = (0..(base.vertices.len() as u16)).collect();

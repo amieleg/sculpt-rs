@@ -39,7 +39,7 @@ impl ModelTool for SinglePolyTool
             }
         }
 
-        if is_key_pressed(KeyCode::Enter) || (is_mouse_button_pressed(MouseButton::Left) && self.vertices.len() >= 4)
+        if is_key_pressed(KeyCode::Enter)
         {
             self.merge(m);
             self.vertices = vec![];
@@ -83,15 +83,30 @@ impl SinglePolyTool
         }
     }
 
+    pub fn potential_poly(&self)
+    {
+        let mut temp_vertices = self.vertices.clone();
+        if let Some(new_vertex) = self.potential_vertex
+        {
+            temp_vertices.push(new_vertex);
+        }
+        return temp_vertices;
+    }
+
     pub fn draw_potential_poly(&self)
     {
-        if self.vertices.len() == 2
+        let mut temp_vertices = self.vertices.clone();
+        if let Some(new_vertex) = self.potential_vertex
         {
-            draw_line_3d(self.vertices[0], self.vertices[1], BLACK);
+            temp_vertices.push(new_vertex);
         }
-        else if self.vertices.len() == 3
+        if temp_vertices.len() == 2
         {
-            let vertices_list: Vec<Vertex> = self.vertices.iter().map(|v| Vertex {
+            draw_line_3d(temp_vertices[0], temp_vertices[1], BLACK);
+        }
+        /*else if temp_vertices.len() == 3
+        {
+            let vertices_list: Vec<Vertex> = temp_vertices.iter().map(|v| Vertex {
                 position: *v,
                 uv: Vec2::ZERO,
                 normal: Vec4::ZERO,
@@ -99,15 +114,19 @@ impl SinglePolyTool
             }).collect();
             draw_tri_3d(vertices_list.try_into().unwrap());
         }
-        else if self.vertices.len() == 4
+        else if temp_vertices.len() == 4
         {
-            let vertices_list: Vec<Vertex> = self.vertices.iter().map(|v| Vertex {
+            let vertices_list: Vec<Vertex> = temp_vertices.iter().map(|v| Vertex {
                 position: *v,
                 uv: Vec2::ZERO,
                 normal: Vec4::ZERO,
                 color: [127, 127, 255, 127],
             }).collect();
             draw_quad_3d(vertices_list.try_into().unwrap());
+        }*/
+        else 
+        {
+            let as_tris = 
         }
     }
 
@@ -136,11 +155,11 @@ impl SinglePolyTool
         
         if self.vertices.len() == 4
         {
-            m.polys.push(Poly::Quad { ix: new_poly_indeces.try_into().unwrap(), uvs: [vec2(0.,0.); 4], normal: Vec3::ZERO });
+            m.polys.push(Poly { ixs: new_poly_indeces, uvs: vec![vec2(0.,0.); 4], normal: Vec3::ZERO });
         }
         else if self.vertices.len() == 3
         {
-            m.polys.push(Poly::Triangle { ix: new_poly_indeces.try_into().unwrap(), uvs: [vec2(0.,0.); 3], normal: Vec3::ZERO });
+            m.polys.push(Poly { ixs: new_poly_indeces, uvs: vec![vec2(0.,0.); 3], normal: Vec3::ZERO });
         }
     }
 }

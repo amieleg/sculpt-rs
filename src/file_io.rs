@@ -67,23 +67,16 @@ pub fn load_obj_file(path: &str) -> Result<Model, &'static str>
                         poly_norm = normals[n_ix as usize];
                     }
                 }
-                
-                if poly_ixs.len() == 3
-                {
-                    polys.push(Poly::Triangle {
-                        ix: poly_ixs[0..3].try_into().unwrap(),
-                        uvs: poly_uvs[0..3].try_into().unwrap(),
+
+                polys.push
+                (
+                    Poly
+                    {
+                        ixs: poly_ixs,
+                        uvs: poly_uvs,
                         normal: poly_norm
-                    })
-                }
-                if poly_ixs.len() == 4
-                {
-                    polys.push(Poly::Quad {
-                        ix: poly_ixs[0..4].try_into().unwrap(),
-                        uvs: poly_uvs[0..4].try_into().unwrap(),
-                        normal: poly_norm
-                    })
-                }
+                    }
+                );
             }
         }
     }
@@ -135,47 +128,23 @@ pub fn write_obj_file(path: &str, model: &Model) -> Result<(), &'static str>
     let mut normals_index = 1;
     for poly in &model.polys
     {
-        match poly
+        let mut poly_uvs_string = String::from("");
+        let mut poly_string = String::from("f");
+
+        for i in 0..poly.ixs.len()
         {
-            Poly::Triangle{ix, uvs, normal} =>
-            {
-                uvs_string.push_str(&format!("vt {} \nvt {} \nvt {} \n", fvec2(uvs[0]), fvec2(uvs[1]), fvec2(uvs[2])));
-                normals_string.push_str(&format!("vn {} \n", fvec3(*normal)));
-                polys_string.push_str(&format!("f {}/{}/{} {}/{}/{} {}/{}/{} \n", 
-                    ix[0]+1, 
-                    uv_index, 
-                    normals_index, 
-                    ix[1]+1, 
-                    uv_index+1,
-                    normals_index,
-                    ix[2]+1,
-                    uv_index+2,
-                    normals_index
-                ));
-                uv_index += 3;
-            },
-            Poly::Quad{ix, uvs, normal} =>
-            {
-                uvs_string.push_str(&format!("vt {} \nvt {} \nvt {} \nvt {}\n", fvec2(uvs[0]), fvec2(uvs[1]), fvec2(uvs[2]), fvec2(uvs[3])));
-                normals_string.push_str(&format!("vn {} \n", fvec3(*normal)));
-                polys_string.push_str(&format!("f {}/{}/{} {}/{}/{} {}/{}/{} {}/{}/{} \n", 
-                    ix[0]+1, 
-                    uv_index, 
-                    normals_index, 
-                    ix[1]+1, 
-                    uv_index+1,
-                    normals_index,
-                    ix[2]+1,
-                    uv_index+2,
-                    normals_index,
-                    ix[3]+1,
-                    uv_index+3,
-                    normals_index
-                ));
-                uv_index += 4;
-            }
+            poly_uvs_string.push_str(&format!("vt {} \n", fvec2(poly.uvs[i])));
+            poly_string.push_str(&format!(" {}/{}/{}", poly.ixs[i]+1, uv_index+i, normals_index));
         }
+
+        poly_string.push_str("\n");
+
+        polys_string.push_str(&poly_string);
+        uvs_string.push_str(&poly_uvs_string);
+        normals_string.push_str(&format!("vn {} \n", fvec3(poly.normal)));
+
         normals_index += 1;
+        uv_index += poly.ixs.len();
     }
 
     content.push_str(&uvs_string);

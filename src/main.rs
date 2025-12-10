@@ -87,7 +87,7 @@ async fn main() {
             {
                 state = EditorState::Paused;
             }
-
+            write_obj_file(&file_settings.model_file_path, &m).unwrap();
         }
         if is_key_pressed(KeyCode::Tab) 
         {
