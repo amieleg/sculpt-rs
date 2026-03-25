@@ -1,7 +1,6 @@
 use crate::utils::drop_y_normalize;
-use crate::tools::*;
-use crate::my_model::*;
 use macroquad::prelude::*;
+
 
 
 pub const MOVE_SPEED: f32 = 0.02;
@@ -34,24 +33,24 @@ impl Player
     pub fn update(&mut self, delta: f32)
     {
         self.mi.update(delta);
-        self.movement_update(delta);
+        self.movement_update();
     }
 
-    pub fn movement_update(&mut self, delta: f32)
+    pub fn movement_update(&mut self)
     {
-        if is_key_down(KeyCode::Up) 
+        if is_key_down(KeyCode::W) 
         {
             self.mi.position += drop_y_normalize(self.mi.front) * MOVE_SPEED;
         }
-        if is_key_down(KeyCode::Down) 
+        if is_key_down(KeyCode::S) 
         {
             self.mi.position -= drop_y_normalize(self.mi.front) * MOVE_SPEED;
         }
-        if is_key_down(KeyCode::Left) 
+        if is_key_down(KeyCode::A) 
         {
             self.mi.position -= drop_y_normalize(self.mi.right) * MOVE_SPEED;
         }
-        if is_key_down(KeyCode::Right) 
+        if is_key_down(KeyCode::D) 
         {
             self.mi.position += drop_y_normalize(self.mi.right) * MOVE_SPEED;
         }
@@ -63,6 +62,16 @@ impl Player
         {
             self.mi.position -= self.mi.world_up * MOVE_SPEED;
         }
+    }
+
+    // For X and Z directions, takes the largest direction of the front vector
+    pub fn front_as_direction(&self) -> Vec3
+    {
+        if self.mi.front.x.abs() > self.mi.front.z.abs()
+        {
+            return vec3(self.mi.front.x, 0., 0.).normalize()
+        }
+        return vec3(0.,0.,self.mi.front.z).normalize()
     }
 }
 

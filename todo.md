@@ -1,13 +1,11 @@
 Program
-1 Create repo
-2 Create site
-3 Finish toolbar
-    - Proper location in browser
-    - Icons
-    - Numbers
-    - Selected is highlighted
-    - 9 spaces?
-4 Aligner for placing on a surface
-5 Aligner for placing on a grid (big and small)
-6 Tool for moving a single vertex on / off grid
-7 Simple lighting 
+- Simple lighting
+- Show tool in hand
+- Wireframe with polys
+- Info box per tool
+- Settings box per tool
+- Change main to handle normal, settings, inventory and paused mode
+
+- Tests??
+
+

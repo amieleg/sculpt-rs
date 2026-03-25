@@ -9,24 +9,19 @@ pub struct HandTool
 
 impl ModelTool for HandTool
 {
-    fn start_up(&mut self, m: &mut Model, loc: Vec3) 
+    fn draw_mesh(&self, _m: &Model)
     {
         
-    }
-
-    fn update(&mut self, m: &mut Model, loc: Vec3)
-    {
-        
-    }
-
-    fn gen_mesh(&self, m: &Model) -> Mesh
-    {
-        m.gen_mesh()
     }
 
     fn get_name(&self) -> &str
     {
         "Hand Tool"
+    }
+
+    fn get_texture_index(&self) -> usize 
+    {
+        return 0
     }
 }
 

@@ -1,19 +1,26 @@
+use std::path::Path;
+use std::path::PathBuf;
+
 use macroquad::prelude::*;
 use macroquad::amiel::*;
-use macroquad::ui::Skin;
-use macroquad::ui::StyleBuilder;
-use macroquad::ui::{self, hash, widgets, root_ui};
 
 mod my_model;
 mod utils;
 mod player;
 mod tools;
 mod toolbar;
+mod aligners;
+mod file_io;
+mod paused;
+mod material_atlas;
 
+use crate::file_io::*;
+use crate::material_atlas::MaterialAtlas;
 use crate::my_model::*;
 use crate::player::*;
-use crate::tools::*;
+use crate::paused::draw_paused;
 use crate::toolbar::Toolbar;
+use crate::utils::TextureAtlas;
 
 fn conf() -> Conf {
     Conf {
@@ -25,128 +32,167 @@ fn conf() -> Conf {
     }
 }
 
-pub static PIXEL_SIZE: u16 = 1;
+pub const PIXEL_SIZE: u16 = 1;
+
+pub static mut SMALL_GRID_SIZE: f32 = 0.1;
+pub static mut PLAYER_REACH: f32 = 0.1;
+pub static mut VERTEX_IDENTIFIER_SIZE: f32 = 0.1;
+
+#[derive(PartialEq)]
+pub enum EditorMode
+{
+    Normal,
+    ToolSettings,
+    Paused
+}
+
+pub struct EditorState
+{
+    mode: EditorMode,
+    debug: bool,
+    grid: bool
+}
+
+pub struct FileSettings
+{
+    model_file_path: PathBuf,
+    texture_file_path: PathBuf,
+}
+
+fn hide_cursor(toggle: bool, p: &mut Player)
+{
+    p.mi.grabbed = toggle;
+    set_cursor_grab(toggle);
+    show_mouse(!toggle);
+}
 
 #[macroquad::main(conf)]
 async fn main() {
-    let texture = load_texture("assets/birdcolors.png").await.unwrap();
-    texture.set_filter(FilterMode::Nearest);
+    let mut file_settings = FileSettings{model_file_path: PathBuf::from("out.obj"), texture_file_path: PathBuf::from("assets/cubetexturecolor64-48.png")};
 
-    let mut f3 = false;
+    let icon_atlas = TextureAtlas::icons_atlas().await;
 
-    let mut m = Model::new(texture);
+    let material_atlas = MaterialAtlas::from_folder(Path::new("assets/seamlessTextures2PNG")).await.unwrap();
 
+    let mut m = Model::new(Some(material_atlas.compile()));
     let mut p = Player::new();
+    let mut tb = Toolbar::new(material_atlas).await;
 
-    let mut tb = Toolbar::new();// toolbar
+    let mut state = EditorState{mode: EditorMode::Normal, debug: false, grid: true};
+
 
     set_cursor_grab(p.mi.grabbed);
     show_mouse(false);
+
 
     loop {
 
         // --- UPDATE / INPUT ---
 
         let delta = get_frame_time();
-        p.update(delta);
-        { // Lifetime mut mi reference
-        let mi = &mut p.mi;
 
         if is_key_pressed(KeyCode::Escape)
         {
-            break;
-        }
-        if is_key_pressed(KeyCode::Tab) 
-        {
-            mi.grabbed = !mi.grabbed;
-            set_cursor_grab(mi.grabbed);
-            show_mouse(!mi.grabbed);
+            if state.mode == EditorMode::Paused
+            {
+                state.mode = EditorMode::Normal;
+            }
+            else 
+            {
+                state.mode = EditorMode::Paused;
+            }
+
+            hide_cursor(!p.mi.grabbed, &mut p);
         }
         if is_key_pressed(KeyCode::F3)
         {
-            f3 = !f3;
+            state.debug = !state.debug;
         }
-        if tb.update()
+        if is_key_pressed(KeyCode::G)
         {
-            let tool = tb.get_current_tool_mut();
-            tool.start_up(&mut m, mi.position + mi.front * 2.0);
+            state.grid = !state.grid;
+        }
+        if state.mode != EditorMode::Paused
+        {
+            if is_mouse_button_pressed(MouseButton::Right)
+            {
+                if state.mode == EditorMode::Normal
+                {
+                    state.mode = EditorMode::ToolSettings;
+                    hide_cursor(false, &mut p,);
+                }
+                else if state.mode == EditorMode::ToolSettings
+                {
+                    state.mode = EditorMode::Normal;
+                    hide_cursor(true, &mut p);
+                }
+            }
         }
 
-        let tool = tb.get_current_tool_mut();
-        tool.update(&mut m, mi.position + mi.front * 2.0);
 
         // --- 3D DRAWING ---
 
         clear_background(SKYBLUE);
 
         set_camera(&Camera3D {
-            position: mi.position,
-            up: mi.up,
-            target: mi.position + mi.front,
+            position: p.mi.position,
+            up: p.mi.up,
+            target: p.mi.position + p.mi.front,
             fovy: 90.0_f32.to_radians(),
             ..Default::default()
         });
 
-        let basemesh = m.gen_mesh();
-        let fullmesh = tool.gen_mesh(&m);
+        if state.mode == EditorMode::Normal
+        {
+            p.update(delta);
 
+            if tb.update()
+            {
+                tb.tools[tb.last_tool].shut_down(&mut m, &p);
+                tb.get_current_tool_mut().start_up(&mut m, &p);
+            }
+        
+            tb.get_current_tool_mut().update(&mut m, &p);
+        }
+
+        if state.grid
+        {
+            draw_grid(16, 1.0, BLACK, BLACK);
+        }
+
+        let basemesh = m.gen_mesh();
         draw_mesh(&basemesh);
-        draw_mesh_wires(&fullmesh, BLACK);
-        } // end mut mi reference
+        tb.get_current_tool_mut().draw_mesh(&m);
 
         // --- 2D Drawing ---
 
         set_default_camera();
 
         // Draw crosshair
-        draw_circle_lines((conf().window_width / 2) as f32, (conf().window_height / 2) as f32, 5.0, 1.0, RED);
-        draw_circle_lines((conf().window_width / 2) as f32, (conf().window_height / 2) as f32, 0.0, 1.0, RED);
+        draw_circle_lines(screen_width() / 2., screen_height() / 2., 5.0, 1.0, RED);
+        draw_circle_lines(screen_width() / 2., screen_height() / 2., 0.0, 2.0, RED);
 
-        // Draw debug if needed
-        if f3
+        tb.draw_toolbar(&icon_atlas);
+        if state.mode == EditorMode::ToolSettings
         {
-            draw_info(&p, &m);
+            tb.get_current_tool_mut().open_settings();
+        }
+        else if state.mode == EditorMode::Paused
+        {
+            draw_paused(&file_settings, &mut m);
         }
 
-        draw_toolbar(&tb);
+        if state.debug
+        {
+            draw_debug(&p, &m);
+        }
 
         next_frame().await;
     }
 }
 
-pub fn draw_toolbar(tb: &Toolbar)
-{
-    root_ui().window(hash!(), Vec2::new((conf().window_width as f32 / 2.) - 200., conf().window_height as f32 - 80.), Vec2::new(400., 60.), |ui| {
-            for i in 1..tb.tools.len()
-            {
-                let tool = &tb.tools[i];
-            
-                if i == tb.selected_tool
-                {
-                    let red_style = ui.style_builder()
-                    .text_color(RED)
-                    .build();
-
-                    let red_skin = Skin {
-                        label_style: red_style,
-                        ..ui.default_skin()
-                    };
-
-                    ui.push_skin(&red_skin);
-                    ui.label(None, &tool.as_ref().get_name());
-                    ui.pop_skin();
-                }
-                else 
-                {
-                    ui.label(None, &tool.as_ref().get_name());
-                }
-                ui.same_line(0.0);
-            }
-        });
-}
-
 /// Draws text information from p and m on the screen
-pub fn draw_info(p: &Player, m: &Model)
+pub fn draw_debug(p: &Player, m: &Model)
 {
     let mi = &p.mi;
     draw_text(
@@ -156,25 +202,11 @@ pub fn draw_info(p: &Player, m: &Model)
         30.0,
         BLACK,
     );
-    let intsect = m.send_ray(mi.position, mi.front);
-    if let Some(intsect) = intsect
-    {
-        draw_text(
-            format!("Intersect X: {} Y: {} Z: {}", intsect.x, intsect.y, intsect.z).as_str(),
-            10.0,
-            30.0 + 18.0,
-            30.0,
-            BLACK,
-        );
-    }
-    else 
-    {
-        draw_text(
-            format!("No intersect!").as_str(),
-            10.0,
-            30.0 + 18.0,
-            30.0,
-            BLACK,
-        );  
-    }
+    draw_text(
+        format!("Drawing {} vertices and {} polys", m.vertices.len(), m.polys.len()).as_str(),
+        10.0,
+        60.0,
+        30.0,
+        BLACK,
+    );
 }
