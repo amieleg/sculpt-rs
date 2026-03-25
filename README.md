@@ -7,6 +7,6 @@ Currently has:
 - Change vertex locations
 - Paint on models using either the pixel or material brush
 
-[a picture from the current version](readme-pic.png)
+![a picture from the current version](readme-pic.png)
 
 Try out a basic version [here](amieleg.github.io)
