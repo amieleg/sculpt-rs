@@ -1,5 +1,5 @@
 use macroquad::prelude::*;
-use crate::utils::*;
+use crate::{material_atlas::MaterialAtlas, utils::*};
 
 #[macro_export]
 macro_rules! tri {
@@ -7,7 +7,8 @@ macro_rules! tri {
         Poly { 
             ixs: vec![$a, $b, $c], 
             uvs: vec![Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
-            normal: Vec3::ZERO 
+            normal: Vec3::ZERO,
+            material: None,
         }
     };
 }
@@ -26,7 +27,8 @@ macro_rules! tri_uv {
                 vec2($ub, $vb),
                 vec2($uc, $vc),
             ],
-            normal: Vec3::ZERO, 
+            normal: Vec3::ZERO,
+            material: None, 
         }
     };
 }
@@ -37,7 +39,8 @@ macro_rules! quad {
         Poly { 
             ixs: vec![$a, $b, $c, $d], 
             uvs: vec![Vec2::ZERO, Vec2::ZERO, Vec2::ZERO, Vec2::ZERO],
-            normal: Vec3::ZERO 
+            normal: Vec3::ZERO,
+            material: None
         }
     };
 }
@@ -59,6 +62,7 @@ macro_rules! quad_uv {
                 vec2($ud, $vd)
             ],
             normal: Vec3::ZERO,
+            material: None
         }
     };
 }
@@ -89,7 +93,8 @@ pub struct Tri
 {
     pub ixs: [u16; 3],
     pub uvs: [Vec2; 3],
-    pub normal: Vec3
+    pub normal: Vec3,
+    pub material: Option<u16>,
 }
 
 #[derive(Clone)]
@@ -97,7 +102,8 @@ pub struct Poly
 {
     pub ixs: Vec<u16>,
     pub uvs: Vec<Vec2>,
-    pub normal: Vec3
+    pub normal: Vec3,
+    pub material: Option<u16>
 }
 
 impl Poly
@@ -112,11 +118,12 @@ impl Poly
                 {
                     ixs: [self.ixs[0], self.ixs[1], self.ixs[2]],
                     uvs: [self.uvs[0], self.uvs[1], self.uvs[2]],
-                    normal: self.normal
+                    normal: self.normal,
+                    material: self.material,
                 }
             ]
         }
-        if self.ixs.len() == 4
+        else if self.ixs.len() == 4
         {
             return vec!
             [
@@ -124,17 +131,19 @@ impl Poly
                 {
                     ixs: [self.ixs[0], self.ixs[1], self.ixs[2]],
                     uvs: [self.uvs[0], self.uvs[1], self.uvs[2]],
-                    normal: self.normal
+                    normal: self.normal,
+                    material: self.material
                 },
                 Tri
                 {
                     ixs: [self.ixs[0], self.ixs[2], self.ixs[3]],
                     uvs: [self.uvs[0], self.uvs[2], self.uvs[3]],
-                    normal: self.normal
+                    normal: self.normal,
+                    material: self.material
                 }
             ]
         }
-        if self.ixs.len() >= 5
+        else if self.ixs.len() >= 5
         {
             let len = self.ixs.len();
             let mut tris = vec!
@@ -143,13 +152,15 @@ impl Poly
                 {
                     ixs: [self.ixs[0], self.ixs[1], self.ixs[2]],
                     uvs: [self.uvs[0], self.uvs[1], self.uvs[2]],
-                    normal: self.normal
+                    normal: self.normal,
+                    material: self.material
                 },
                 Tri
                 {
                     ixs: [self.ixs[0], self.ixs[len-2], self.ixs[len-1]],
                     uvs: [self.uvs[0], self.uvs[len-2], self.uvs[len-1]],
-                    normal: self.normal
+                    normal: self.normal,
+                    material: self.material
                 }
             ];
 
@@ -161,10 +172,13 @@ impl Poly
                     {
                         ixs: [self.ixs[0], self.ixs[i], self.ixs[i+1]],
                         uvs: [self.uvs[0], self.uvs[i+1], self.uvs[i+1]],
-                        normal: self.normal
+                        normal: self.normal,
+                        material: self.material
                     }
                 );
             }
+
+            return tris;
         }
 
         return vec![];
@@ -194,20 +208,20 @@ impl Model
     {
         let vertices = vec![
             // Front face
-            vec3(0.0, 0.0,  0.0),
-            vec3(1.0, 0.0,  0.0),
-            vec3(1.0, 0.0, 1.0),
+            vec3(-0.5, 0.0,  -0.5),
+            vec3(0.5, 0.0,  -0.5),
+            vec3(0.5, 0.0, 0.5),
+            vec3(-0.5, 0.0, 0.5),
         ];
 
-        let triangles = vec![
-            // Front face
-            tri_uv![0, (0.,0.), 1, (1., 0.), 2, (1., 1.)]
+        let polys = vec![
+            quad_uv![0, (0.,0.), 1, (1., 0.), 2, (1., 1.), 3, (0., 1.)]
         ];
 
         Model
         {
             vertices: vertices,
-            polys: triangles,
+            polys: polys,
             texture: texture,
         }
     }
@@ -229,7 +243,8 @@ impl Model
 
         let polys = vec![
             // Front
-            quad_uv![0, (0., 2./3.), 1, (1./4.,2./3.), 2, (1./4.,1./3.), 3, (0.,1./3.)],
+            //quad_uv![0, (0., 2./3.), 1, (1./4.,2./3.), 2, (1./4.,1./3.), 3, (0.,1./3.)],
+            quad_uv![0, (0., 0.), 1, (0.,1.), 2, (1.,1.), 3, (1.,0.)],
             // Bottom
             quad_uv![0, (1./4.,1.), 1, (1./4.,2./3.), 5, (1./2.,2./3.), 4, (1./2.,1.)],
             // Right
@@ -536,4 +551,58 @@ impl Model
 
         return None;
     }
+
+    pub fn set_uvs(&mut self, mats: &MaterialAtlas)
+    {
+        for poly in &mut self.polys
+        {
+            if let Some(material_id) = poly.material
+            {
+                let uvs = mats.get_uvs(material_id);
+                let uv_corners = [uvs.0, vec2(uvs.0.x, uvs.1.y), uvs.1, vec2(uvs.1.x, uvs.0.x)];
+
+                let mut i = 0;
+                for uv in &mut poly.uvs
+                {
+                    uv.x = uv_corners[i].x;
+                    uv.y = uv_corners[i].y;
+                    i += 1;
+                }
+            }
+            else
+            {
+                for uv in &mut poly.uvs
+                {
+                    uv.x = 0.;
+                    uv.y = 0.;
+                }
+            }
+        }
+    }
+
+    pub fn set_uv(&mut self, index: u16, mats: &MaterialAtlas)
+    {
+        if let Some(material_id) = self.polys[index as usize].material
+        {
+            let uvs = mats.get_uvs(material_id);
+            let uv_corners = [uvs.0, vec2(uvs.1.x, uvs.0.y), uvs.1, vec2(uvs.0.x, uvs.1.y)];
+
+            let mut i = 0;
+            for uv in &mut self.polys[index as usize].uvs
+            {
+                uv.x = uv_corners[i].x;
+                uv.y = uv_corners[i].y;
+                i += 1;
+            }
+        }
+        else
+        {
+            for uv in &mut self.polys[index as usize].uvs
+            {
+                uv.x = 0.;
+                uv.y = 0.;
+            }
+        }
+    }
+
 }

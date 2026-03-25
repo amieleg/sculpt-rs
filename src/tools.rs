@@ -1,3 +1,4 @@
+use macroquad::amiel::draw_mesh_wires;
 use macroquad::prelude::*;
 use macroquad::ui::{Ui, hash, root_ui};
 use macroquad::ui::widgets::Window;
@@ -13,6 +14,7 @@ pub mod brush_tool;
 pub mod inspect_tool;
 pub mod deleter_tool;
 pub mod single_poly_tool;
+pub mod poly_brush_tool;
 
 /// Trait to be implemented by any tool that is used to edit a model
 /// @start_up - called when the player starts using the tool, sets the tool's internal state, not always necessary 
@@ -46,9 +48,9 @@ pub trait ModelTool
     {
 
     }
-    fn gen_mesh(&self, m: &Model) -> Mesh
+    fn draw_mesh(&self, m: &Model)
     {
-        return m.gen_mesh();
+        draw_mesh_wires(&m.gen_mesh(), BLACK);
     } 
     fn get_name(&self) -> &str;
     fn get_texture_index(&self) -> usize;
@@ -73,21 +75,30 @@ impl ModelAddition
         }
     }
 
-    // Generates a mesh with both a given model and the modeladdition
-    pub fn gen_mesh(&self, m: &Model) -> Mesh
+    pub fn get_pos(&self, m: &Model, index: u16) -> Vec3
     {
-        let mut poss = m.vertices.clone();
-        poss.append(&mut self.vertices.clone());
+        if (index as usize) < m.vertices.len()
+        {
+            return m.vertices[index as usize];
+        }
+        else 
+        {
+            return self.vertices[(index as usize) - m.vertices.len()];
+        }
+    }
 
+    // Generates a mesh with both a given model and the modeladdition
+    pub fn gen_mesh_full(&self, m: &Model, c: Color) -> Mesh
+    {
         let mut base = m.gen_mesh();
 
         for poly in &self.polys
         {
             let mut vexs_to_add: Vec<Vertex> = poly.to_tris().iter().map(|tri| 
                     vec![
-                        Vertex::new2(poss[tri.ixs[0] as usize], tri.uvs[0], WHITE),
-                        Vertex::new2(poss[tri.ixs[1] as usize], tri.uvs[1], WHITE),
-                        Vertex::new2(poss[tri.ixs[2] as usize], tri.uvs[2], WHITE)
+                        Vertex::new2(self.get_pos(m, tri.ixs[0]), tri.uvs[0], c),
+                        Vertex::new2(self.get_pos(m, tri.ixs[1]), tri.uvs[1], c),
+                        Vertex::new2(self.get_pos(m, tri.ixs[2]), tri.uvs[2], c)
                     ]
                 ).flat_map(|v| v).collect();
 
@@ -102,4 +113,38 @@ impl ModelAddition
         return base;
     }
 
+    pub fn gen_mesh(&self, m: &Model, c: Color) -> Mesh
+    {
+        let mut base = Mesh{
+            vertices: vec![],
+            indices: vec![],
+            texture: None,
+        };
+
+        for poly in &self.polys
+        {
+            let mut vexs_to_add: Vec<Vertex> = poly.to_tris().iter().map(|tri| 
+                    vec![
+                        Vertex::new2(self.get_pos(m, tri.ixs[0]), tri.uvs[0], c),
+                        Vertex::new2(self.get_pos(m, tri.ixs[1]), tri.uvs[1], c),
+                        Vertex::new2(self.get_pos(m, tri.ixs[2]), tri.uvs[2], c)
+                    ]
+                ).flat_map(|v| v).collect();
+
+            base.vertices.append
+            (
+                &mut vexs_to_add
+            );
+        }
+
+        base.indices = (0..(base.vertices.len() as u16)).collect();
+
+        return base;
+    }
+
+    pub fn append_to(&mut self, m: &mut Model)
+    {
+        m.vertices.append(&mut self.vertices);
+        m.polys.append(&mut self.polys);
+    }
 }

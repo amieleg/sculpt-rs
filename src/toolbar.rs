@@ -1,5 +1,8 @@
+use std::path::Path;
+
 use macroquad::prelude::*;
 use macroquad::ui::{hash, root_ui, Skin};
+use crate::material_atlas::MaterialAtlas;
 use crate::my_model::Model;
 use crate::{tools::*};
 use crate::tools::hand_tool::*;
@@ -10,6 +13,7 @@ use crate::tools::brush_tool::*;
 use crate::tools::inspect_tool::*;
 use crate::tools::deleter_tool::*;
 use crate::tools::single_poly_tool::*;
+use crate::tools::poly_brush_tool::*;
 use crate::utils::TextureAtlas;
 
 const TOOLBAR_SIZE: usize = 9;
@@ -25,7 +29,7 @@ pub struct Toolbar
 
 impl Toolbar
 {
-    pub async fn new() -> Toolbar
+    pub async fn new(atlas: MaterialAtlas) -> Toolbar
     {
         let mut tools: Vec<Box<dyn ModelTool>> = Vec::with_capacity(TOOLBAR_SIZE + 1); // +1 to accomodate the handtool that is always present
         tools.push(Box::new(HandTool::new()));
@@ -46,9 +50,11 @@ impl Toolbar
 
         let brush_tool: Box<dyn ModelTool> = Box::new(BrushTool::new("assets/cubetexturecolor64-48.png").await);
 
+        let material_brush_tool: Box<dyn ModelTool> = Box::new(PolyBrushTool::new(atlas).await);
+
         let deleter_tool: Box<dyn ModelTool> = Box::new(DeleterTool::new());
 
-        tools.append(&mut vec![cube_tool, triangle_tool, sv_tool, sp_tool, svm_tool, inspect_tool, brush_tool, deleter_tool]);
+        tools.append(&mut vec![cube_tool, triangle_tool, sv_tool, sp_tool, svm_tool, inspect_tool, brush_tool, material_brush_tool, deleter_tool]);
         
         Toolbar
         {

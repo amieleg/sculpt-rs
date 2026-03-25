@@ -20,6 +20,7 @@ impl ModelTool for BrushTool
         if is_key_pressed(KeyCode::C)
         {
             self.resize(64,200);
+            self.merge(m);
         }
         if let Some((loc, poly, _)) = m.send_ray(p.mi.position, p.mi.front)
         {

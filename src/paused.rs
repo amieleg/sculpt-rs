@@ -11,6 +11,6 @@ pub fn draw_paused(file_settings: &FileSettings, m: &mut Model)
     Window::new(hash!(screen_width() as u64, screen_height() as u64, "pause menu"), Vec2::new(10., 10.), Vec2::new(300., screen_height() - 20.)).titlebar(false).ui(&mut *root_ui(), |ui|
     {
         ui.label(vec2(0.,0.), "Paused");
-        
+        ui.button(vec2(0.,30.), "Save");
     });
 }

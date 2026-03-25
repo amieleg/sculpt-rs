@@ -1,6 +1,7 @@
 use crate::aligners::Aligner;
 use crate::utils::vec_as_change;
 use crate::{my_model::Model, tools::ModelTool, player::*, aligners::GridAligner};
+use macroquad::amiel::draw_mesh_wires;
 use macroquad::prelude::*;
 use macroquad::models::Mesh;
 use macroquad::ui::{hash, root_ui};
@@ -110,9 +111,9 @@ impl ModelTool for SingleVertexMover
         self.state = SVMState::Selecting;
     }
 
-    fn gen_mesh(&self, m: &Model) -> Mesh
+    fn draw_mesh(&self, m: &Model)
     {
-        m.gen_mesh()
+        draw_mesh_wires(&m.gen_mesh(), BLACK);
     }
 
     fn get_name(&self) -> &str

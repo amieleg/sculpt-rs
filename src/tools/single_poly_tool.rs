@@ -4,10 +4,12 @@ use macroquad::amiel::*;
 
 pub struct SinglePolyTool
 {
-    vertices: Vec<Vec3>,
-    maybe_indeces: Vec<Option<u16>>,
-    potential_vertex: Option<Vec3>,
+    ma: ModelAddition,
+    pot_vertex: Vec3,
 }
+
+static POT_BLUE: Color = Color::from_rgba(127,127,255,127);
+static POT_RED: Color = Color::from_rgba(255,127,127,127);
 
 impl ModelTool for SinglePolyTool
 {
@@ -18,47 +20,52 @@ impl ModelTool for SinglePolyTool
             let looking_at_vertex = m.vertices[looking_at_index as usize];
             
             draw_sphere(looking_at_vertex,  0.05, None, RED);
-            self.potential_vertex = Some(looking_at_vertex);
+            self.pot_vertex = looking_at_vertex;
             
-            if is_mouse_button_pressed(MouseButton::Left) && self.vertices.len() < 4
+            if is_mouse_button_pressed(MouseButton::Left)
             {
-                self.vertices.push(looking_at_vertex);
-                self.maybe_indeces.push(Some(looking_at_index));
+                self.ma.polys[0].ixs.push(looking_at_index);
+                self.ma.polys[0].uvs.push(Vec2::ZERO);
             }
         }
         else 
         {
             let new_vertex = p.mi.position + p.mi.front * 2.0;
+            
+            self.pot_vertex = new_vertex;
+            
 
-            self.potential_vertex = Some(new_vertex);
-
-            if is_mouse_button_pressed(MouseButton::Left) && self.vertices.len() < 4
+            if is_mouse_button_pressed(MouseButton::Left)
             {
-                self.vertices.push(new_vertex);
-                self.maybe_indeces.push(None);
+                self.ma.vertices.push(new_vertex);
+                self.ma.polys[0].ixs.push(m.vertices.len() as u16 + self.ma.vertices.len() as u16 - 1);
+                self.ma.polys[0].uvs.push(Vec2::ZERO);
             }
         }
 
         if is_key_pressed(KeyCode::Enter)
         {
             self.merge(m);
-            self.vertices = vec![];
-            self.maybe_indeces = vec![];
-            self.potential_vertex = None;
+            self.start_up(m,p);
         }
         if is_key_pressed(KeyCode::Backspace)
         {
-            self.vertices = vec![];
-            self.maybe_indeces = vec![];
-            self.potential_vertex = None;
+            self.ma.vertices.clear();
+            self.ma.polys.clear();
         }
         
-        self.draw_potential_poly();
+        self.draw_potential_poly(m);       
+    }
+
+    fn draw_mesh(&self, m: &Model)
+    {
+        draw_mesh(&self.ma.gen_mesh(&m, POT_BLUE));
     }
 
     fn start_up(&mut self, m: &mut Model, p: &Player)
     {
-        
+        self.ma.polys = vec![Poly{ixs:vec![],uvs:vec![],normal:Vec3::ZERO,material:None}];
+        self.ma.vertices = vec![];
     }
 
     fn get_name(&self) -> &str {
@@ -77,89 +84,30 @@ impl SinglePolyTool
     {
         return SinglePolyTool 
         {
-            vertices: vec![],
-            maybe_indeces: vec![],
-            potential_vertex: None,
+            ma: ModelAddition::new(),
+            pot_vertex: Vec3::ZERO,
         }
     }
 
-    pub fn potential_poly(&self)
+    pub fn draw_potential_poly(&self, m: &Model)
     {
-        let mut temp_vertices = self.vertices.clone();
-        if let Some(new_vertex) = self.potential_vertex
+        if self.ma.polys[0].ixs.len() == 1
         {
-            temp_vertices.push(new_vertex);
+            draw_line_3d(self.ma.get_pos(m, self.ma.polys[0].ixs[0]), self.pot_vertex, POT_RED);
         }
-        return temp_vertices;
-    }
-
-    pub fn draw_potential_poly(&self)
-    {
-        let mut temp_vertices = self.vertices.clone();
-        if let Some(new_vertex) = self.potential_vertex
+        else if self.ma.polys[0].ixs.len() >= 2
         {
-            temp_vertices.push(new_vertex);
-        }
-        if temp_vertices.len() == 2
-        {
-            draw_line_3d(temp_vertices[0], temp_vertices[1], BLACK);
-        }
-        /*else if temp_vertices.len() == 3
-        {
-            let vertices_list: Vec<Vertex> = temp_vertices.iter().map(|v| Vertex {
-                position: *v,
-                uv: Vec2::ZERO,
-                normal: Vec4::ZERO,
-                color: [127, 127, 255, 127],
-            }).collect();
-            draw_tri_3d(vertices_list.try_into().unwrap());
-        }
-        else if temp_vertices.len() == 4
-        {
-            let vertices_list: Vec<Vertex> = temp_vertices.iter().map(|v| Vertex {
-                position: *v,
-                uv: Vec2::ZERO,
-                normal: Vec4::ZERO,
-                color: [127, 127, 255, 127],
-            }).collect();
-            draw_quad_3d(vertices_list.try_into().unwrap());
-        }*/
-        else 
-        {
-            let as_tris = 
+            let len = self.ma.polys[0].ixs.len();
+            draw_tri_3d([
+                Vertex::new2(self.ma.get_pos(m, self.ma.polys[0].ixs[0]), Vec2::ZERO, POT_BLUE),
+                Vertex::new2(self.ma.get_pos(m, self.ma.polys[0].ixs[len-1]), Vec2::ZERO, POT_BLUE),
+                Vertex::new2(self.pot_vertex, Vec2::ZERO, POT_BLUE)
+            ])   
         }
     }
 
-    pub fn merge(&self, m: &mut Model)
+    pub fn merge(&mut self, m: &mut Model)
     {
-        let mut new_poly_indeces = vec![];
-        let mut new_vertices = vec![];
-        let mut new_vertex_index = m.vertices.len() as u16;
-
-
-        for i in 0..self.maybe_indeces.len()
-        {
-            if let Some(index) = self.maybe_indeces[i]
-            {
-                new_poly_indeces.push(index);
-            }
-            else
-            {
-                new_vertices.push(self.vertices[i]);
-                new_poly_indeces.push(new_vertex_index);
-                new_vertex_index += 1;
-            }
-        }
-
-        m.vertices.append(&mut new_vertices);
-        
-        if self.vertices.len() == 4
-        {
-            m.polys.push(Poly { ixs: new_poly_indeces, uvs: vec![vec2(0.,0.); 4], normal: Vec3::ZERO });
-        }
-        else if self.vertices.len() == 3
-        {
-            m.polys.push(Poly { ixs: new_poly_indeces, uvs: vec![vec2(0.,0.); 3], normal: Vec3::ZERO });
-        }
+        self.ma.append_to(m);
     }
 }

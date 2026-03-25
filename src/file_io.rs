@@ -74,7 +74,8 @@ pub fn load_obj_file(path: &str) -> Result<Model, &'static str>
                     {
                         ixs: poly_ixs,
                         uvs: poly_uvs,
-                        normal: poly_norm
+                        normal: poly_norm,
+                        material: None,
                     }
                 );
             }

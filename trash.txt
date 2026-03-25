@@ -1,0 +1,42 @@
+/*
+pub fn get_square_of_size(img: &Image, outsize: u16) -> Image
+{
+    let mut smallest_side = img.height();
+
+    if img.width() < smallest_side
+    {
+        smallest_side = img.width();
+    }
+
+    let base_image = img.sub_image(Rect::new(0.,0.,smallest_side as f32,smallest_side as f32));
+
+    let mut out_image = Image::gen_image_color(outsize, outsize, Color::from_rgba(0,0,0,0));
+
+    if base_image.width() < out_image.width() // enlarge image
+    {
+        for y in 0..outsize
+        {
+            for x in 0..outsize
+            {
+                let normalized_x= x as f32 / outsize as f32;
+                let normalized_y = y as f32 / outsize as f32;
+                let target_x = normalized_x * base_image.width() as f32;
+                let target_y = normalized_y * base_image.width() as f32;
+                let result_color = base_image.get_pixel(target_x.round() as u32,target_y.round() as u32);
+
+                out_image.set_pixel(x as u32,y as u32,result_color)
+            }
+        }
+    }
+    else if base_image.width() > out_image.width() // shrink image
+    {
+
+    }
+    else 
+    {
+        return base_image;    
+    }
+
+    return Image::empty();
+}
+    */

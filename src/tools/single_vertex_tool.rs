@@ -47,9 +47,9 @@ impl ModelTool for SingleVertexTool
 
     /// Generate a mesh representing the combination of the base model and the
     /// tool's current addition. The returned mesh is used for preview rendering.
-    fn gen_mesh(&self, m: &Model) -> Mesh
+    fn draw_mesh(&self, m: &Model)
     {
-        return self.ma.gen_mesh(&m);
+        draw_mesh_wires(&self.ma.gen_mesh_full(&m, WHITE), BLACK);
     }
 
     fn get_name(&self) -> &str {
@@ -114,7 +114,7 @@ impl SingleVertexTool
 
             for i in 0..poly_indexes.len()
             {
-                ma_polys.push( Poly{ixs: vec![poly_indexes[i], poly_indexes[(i+1) % poly_indexes.len()], m.vertices.len() as u16], uvs: vec![base_uvs[i], base_uvs[(i+1) % poly_indexes.len()], base_uvs[(i+2) % poly_indexes.len()]] , normal: Vec3::ZERO});
+                ma_polys.push( Poly{ixs: vec![poly_indexes[i], poly_indexes[(i+1) % poly_indexes.len()], m.vertices.len() as u16], uvs: vec![base_uvs[i], base_uvs[(i+1) % poly_indexes.len()], base_uvs[(i+2) % poly_indexes.len()]] , normal: Vec3::ZERO, material: poly.material});
             }
 
             self.ma.polys = ma_polys;

@@ -1,3 +1,6 @@
+use std::path::Path;
+use std::path::PathBuf;
+
 use macroquad::prelude::*;
 use macroquad::amiel::*;
 
@@ -9,8 +12,10 @@ mod toolbar;
 mod aligners;
 mod file_io;
 mod paused;
+mod material_atlas;
 
 use crate::file_io::*;
+use crate::material_atlas::MaterialAtlas;
 use crate::my_model::*;
 use crate::player::*;
 use crate::paused::draw_paused;
@@ -34,42 +39,51 @@ pub static mut PLAYER_REACH: f32 = 0.1;
 pub static mut VERTEX_IDENTIFIER_SIZE: f32 = 0.1;
 
 #[derive(PartialEq)]
-pub enum EditorState
+pub enum EditorMode
 {
     Normal,
     ToolSettings,
     Paused
 }
 
+pub struct EditorState
+{
+    mode: EditorMode,
+    debug: bool,
+    grid: bool
+}
+
 pub struct FileSettings
 {
-    model_file_path: String,
-    texture_file_path: String,
+    model_file_path: PathBuf,
+    texture_file_path: PathBuf,
+}
+
+fn hide_cursor(toggle: bool, p: &mut Player)
+{
+    p.mi.grabbed = toggle;
+    set_cursor_grab(toggle);
+    show_mouse(!toggle);
 }
 
 #[macroquad::main(conf)]
 async fn main() {
-    let mut file_settings = FileSettings{model_file_path: String::from("out.obj"), texture_file_path: String::from("assets/cubetexturecolor64-48.png")};
-    let texture = load_texture(&file_settings.texture_file_path).await.unwrap();
-    texture.set_filter(FilterMode::Nearest);
+    let mut file_settings = FileSettings{model_file_path: PathBuf::from("out.obj"), texture_file_path: PathBuf::from("assets/cubetexturecolor64-48.png")};
 
     let icon_atlas = TextureAtlas::icons_atlas().await;
 
-    let mut f3 = false;
+    let material_atlas = MaterialAtlas::from_folder(Path::new("assets/seamlessTextures2PNG")).await.unwrap();
 
-    //let mut m = Model::new(Some(texture));//Model::gen_cube_model(Some(texture));
-    let mut m = load_obj_file(&file_settings.model_file_path).unwrap();
-    m.texture = Some(texture);
-
+    let mut m = Model::new(Some(material_atlas.compile()));
     let mut p = Player::new();
+    let mut tb = Toolbar::new(material_atlas).await;
 
-    let mut tb = Toolbar::new().await;// toolbar
-
-    let mut state = EditorState::Normal;
+    let mut state = EditorState{mode: EditorMode::Normal, debug: false, grid: true};
 
 
     set_cursor_grab(p.mi.grabbed);
     show_mouse(false);
+
 
     loop {
 
@@ -79,41 +93,38 @@ async fn main() {
 
         if is_key_pressed(KeyCode::Escape)
         {
-            if state == EditorState::Paused
+            if state.mode == EditorMode::Paused
             {
-                state = EditorState::Normal;
+                state.mode = EditorMode::Normal;
             }
             else 
             {
-                state = EditorState::Paused;
+                state.mode = EditorMode::Paused;
             }
-            write_obj_file(&file_settings.model_file_path, &m).unwrap();
-        }
-        if is_key_pressed(KeyCode::Tab) 
-        {
-            p.mi.grabbed = !p.mi.grabbed;
-            set_cursor_grab(p.mi.grabbed);
-            show_mouse(!p.mi.grabbed);
+
+            hide_cursor(!p.mi.grabbed, &mut p);
         }
         if is_key_pressed(KeyCode::F3)
         {
-            f3 = !f3;
+            state.debug = !state.debug;
         }
-        if state != EditorState::Paused
+        if is_key_pressed(KeyCode::G)
+        {
+            state.grid = !state.grid;
+        }
+        if state.mode != EditorMode::Paused
         {
             if is_mouse_button_pressed(MouseButton::Right)
             {
-                if state == EditorState::Normal
+                if state.mode == EditorMode::Normal
                 {
-                    state = EditorState::ToolSettings;
-                    set_cursor_grab(false);
-                    show_mouse(true);
+                    state.mode = EditorMode::ToolSettings;
+                    hide_cursor(false, &mut p,);
                 }
-                else if state == EditorState::ToolSettings
+                else if state.mode == EditorMode::ToolSettings
                 {
-                    state = EditorState::Normal;
-                    set_cursor_grab(true);
-                    show_mouse(false);
+                    state.mode = EditorMode::Normal;
+                    hide_cursor(true, &mut p);
                 }
             }
         }
@@ -131,27 +142,27 @@ async fn main() {
             ..Default::default()
         });
 
-        if state == EditorState::Normal
+        if state.mode == EditorMode::Normal
         {
             p.update(delta);
 
             if tb.update()
             {
                 tb.tools[tb.last_tool].shut_down(&mut m, &p);
-
                 tb.get_current_tool_mut().start_up(&mut m, &p);
             }
         
             tb.get_current_tool_mut().update(&mut m, &p);
         }
 
-        draw_grid(16, 1.0, BLACK, BLACK);
+        if state.grid
+        {
+            draw_grid(16, 1.0, BLACK, BLACK);
+        }
 
         let basemesh = m.gen_mesh();
-        let fullmesh = tb.get_current_tool_mut().gen_mesh(&m);
-
         draw_mesh(&basemesh);
-        draw_mesh_wires(&fullmesh, BLACK);
+        tb.get_current_tool_mut().draw_mesh(&m);
 
         // --- 2D Drawing ---
 
@@ -161,28 +172,24 @@ async fn main() {
         draw_circle_lines(screen_width() / 2., screen_height() / 2., 5.0, 1.0, RED);
         draw_circle_lines(screen_width() / 2., screen_height() / 2., 0.0, 2.0, RED);
 
-        // Draw debug if needed
-        if f3
-        {
-            draw_debug(&p, &m);
-        }
-
         tb.draw_toolbar(&icon_atlas);
-
-        if state == EditorState::ToolSettings
+        if state.mode == EditorMode::ToolSettings
         {
             tb.get_current_tool_mut().open_settings();
         }
-        if state == EditorState::Paused
+        else if state.mode == EditorMode::Paused
         {
             draw_paused(&file_settings, &mut m);
+        }
+
+        if state.debug
+        {
+            draw_debug(&p, &m);
         }
 
         next_frame().await;
     }
 }
-
-
 
 /// Draws text information from p and m on the screen
 pub fn draw_debug(p: &Player, m: &Model)

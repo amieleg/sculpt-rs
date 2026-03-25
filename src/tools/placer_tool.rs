@@ -34,14 +34,14 @@ impl ModelTool for PlacerTool
 
     /// Generates a mesh based on the ModelAddition of the PlacerTool and a given model
     /// Before being added the final mesh, the triangles of the ma are transformed such that the triangles can be appended onto the main model and still reference the right vertices
-    fn gen_mesh(&self, m: &Model) -> Mesh
+    fn draw_mesh(&self, m: &Model)
     {
         let amount_vertices = m.vertices.len() as u16;
         let transformed_polys: Vec<Poly> = self.ma.polys.iter().map(|poly| poly.add_to_indeces(amount_vertices)).collect(); 
 
         let transformed_ma = ModelAddition{vertices: self.ma.vertices.clone(), polys: transformed_polys};
         
-        return transformed_ma.gen_mesh(&m);
+        draw_mesh_wires(&transformed_ma.gen_mesh_full(&m, WHITE), BLACK);
     }
 
     fn get_name(&self) -> &str {

@@ -9,14 +9,9 @@ pub struct HandTool
 
 impl ModelTool for HandTool
 {
-    fn gen_mesh(&self, _m: &Model) -> Mesh
+    fn draw_mesh(&self, _m: &Model)
     {
-        return Mesh
-        {
-            vertices: vec![],
-            indices: vec![],
-            texture: None,
-        }
+        
     }
 
     fn get_name(&self) -> &str
